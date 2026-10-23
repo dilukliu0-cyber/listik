@@ -14,7 +14,7 @@ import { transcribe } from '../../services/transcriber';
 import { actions, notePreview, store, type Note } from '../../store';
 import type { Theme } from '../../theme';
 import Icon from '../../ui/Icon';
-import { PressScale } from '../../ui/motion';
+import { PressScale, useBgTransition } from '../../ui/motion';
 import { REC_OPTIONS, compressWave, level } from './Recorder';
 
 type Props = {
@@ -32,6 +32,8 @@ type Props = {
 
 type RecState = 'idle' | 'recording' | 'locked';
 
+const HOLD_MS = 220;
+
 export default function Composer({ t, chatId, replyTo, editing, onCancelContext, onAttach, onFocus, onSent, text, setText }: Props) {
   const insets = useSafeAreaInsets();
   const recorder = useAudioRecorder(REC_OPTIONS);
@@ -48,6 +50,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
   const nudge = useRef(new Animated.Value(0)).current;
   const bob = useRef(new Animated.Value(0)).current;
   const inputRef = useRef<TextInput>(null);
+  const barBg = useBgTransition(t.chatBar);
 
   recRef.current = rec;
 
@@ -118,7 +121,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
     }
   }
 
-  async function finishRec(send: boolean) {
+  async function finishRec(send: boolean, silent = false) {
     const dur = (Date.now() - startedAt.current) / 1000;
     setRec('idle');
     dragX.setValue(0);
@@ -132,11 +135,11 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
     const uri = recorder.uri;
     if (!send || !uri) {
       if (send && !uri) toast('Запись не сохранилась');
-      else haptic.warning();
+      else if (!silent) haptic.warning();
       return;
     }
     if (dur < 0.7) {
-      toast('Удерживайте микрофон, чтобы записать');
+      toast('Удерживайте, чтобы записать');
       return;
     }
     try {
@@ -162,39 +165,75 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
   const startRef = useRef(startRec);
   startRef.current = startRec;
 
+  // Удержание: короткий тап — подсказка, запись начинается только если палец держат дольше HOLD_MS.
+  // held — палец сейчас на кнопке; запись могла запуститься уже после того, как палец отпустили, —
+  // тогда её сразу выбрасываем (раньше такая запись шла «сама» без удержания).
+  const held = useRef(false);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const beginHold = async () => {
+    holdTimer.current = null;
+    if (!held.current) return;
+    const ok = await startRef.current();
+    if (!ok) return;
+    if (!held.current) {
+      // отпустили, пока запись запускалась
+      finishRef.current(false, true);
+      return;
+    }
+    pop.setValue(0.5);
+    Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 10 }).start();
+    setRec('recording');
+  };
+  const beginRef = useRef(beginHold);
+  beginRef.current = beginHold;
+
+  const releaseHold = () => {
+    held.current = false;
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+      haptic.light();
+      toast('Удерживайте, чтобы записать');
+      return;
+    }
+    if (recRef.current === 'recording') finishRef.current(true);
+  };
+
   const micPan = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => recRef.current !== 'locked',
+      onStartShouldSetPanResponder: () => recRef.current === 'idle',
       onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: async () => {
-        const ok = await startRef.current();
-        if (ok) {
-          pop.setValue(0.5);
-          Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 10 }).start();
-          setRec('recording');
-        }
+      onShouldBlockNativeResponder: () => true,
+      onPanResponderGrant: () => {
+        held.current = true;
+        holdTimer.current = setTimeout(() => beginRef.current(), HOLD_MS);
       },
       onPanResponderMove: (_, g) => {
         if (recRef.current !== 'recording') return;
         dragX.setValue(Math.min(0, g.dx));
         dragY.setValue(Math.min(0, g.dy));
         if (g.dx < -120) {
+          held.current = false;
           finishRef.current(false); // влево — отмена
         } else if (g.dy < -80) {
-          haptic.medium();
+          haptic.success();
           dragX.setValue(0);
           dragY.setValue(0);
-          setRec('locked'); // вверх на замок — фиксация
+          setRec('locked'); // вверх на замок — запись идёт без пальца
         }
       },
-      onPanResponderRelease: () => {
-        if (recRef.current === 'recording') finishRef.current(true);
-      },
-      onPanResponderTerminate: () => {
-        if (recRef.current === 'recording') finishRef.current(true);
-      },
+      onPanResponderRelease: () => releaseHold(),
+      onPanResponderTerminate: () => releaseHold(),
     }),
   ).current;
+
+  useEffect(
+    () => () => {
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+    },
+    [],
+  );
 
   function send() {
     const body = text.trim();
@@ -217,7 +256,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
   const ctx = editing ?? replyTo;
 
   return (
-    <View style={{ backgroundColor: t.chatBar, paddingBottom: Math.max(insets.bottom, 8), borderTopWidth: 0.5, borderTopColor: t.dark ? '#0B121A' : '#DDDDDD' }}>
+    <Reanimated.View style={[barBg, { paddingBottom: Math.max(insets.bottom, 8), borderTopWidth: 0.5, borderTopColor: t.dark ? '#0B121A' : '#DDDDDD' }]}>
       {ctx ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 8 }}>
           <Icon name={editing ? 'pencil' : 'reply'} size={20} color={t.accent} />
@@ -238,27 +277,9 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
         </View>
       ) : null}
 
-      {rec !== 'idle' ? (
-        <Reanimated.View entering={FadeIn.duration(160)} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 8, minHeight: 52 }}>
-          <Animated.View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#E5533D', opacity: blink, marginRight: 8 }} />
-          <Text style={{ color: t.text, fontSize: 16, fontVariant: ['tabular-nums'], width: 50 }}>{duration(elapsed)}</Text>
-          {rec === 'recording' ? (
-            <Reanimated.View entering={SlideInRight.springify().damping(18)} style={{ flex: 1 }}>
-              <Animated.Text style={{ textAlign: 'center', color: t.sub, fontSize: 15, opacity: dragX.interpolate({ inputRange: [-120, -40, 0], outputRange: [0.2, 0.8, 1], extrapolate: 'clamp' }), transform: [{ translateX: Animated.add(Animated.multiply(dragX, 0.5), nudge) }] }}>
-                ‹ влево — отмена
-              </Animated.Text>
-            </Reanimated.View>
-          ) : (
-            <Reanimated.View entering={FadeInDown.duration(200)} style={{ flex: 1 }}>
-              <Pressable style={{ alignItems: 'center' }} onPress={() => finishRec(false)} hitSlop={10}>
-                <Text style={{ color: t.danger, fontSize: 17 }}>Отмена</Text>
-              </Pressable>
-            </Reanimated.View>
-          )}
-          <View style={{ width: 64 }} />
-        </Reanimated.View>
-      ) : (
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 8, paddingTop: 8 }}>
+      {/* Поле ввода не размонтируется во время записи — клавиатура остаётся открытой, как в Telegram */}
+      <View>
+        <View pointerEvents={rec === 'idle' ? 'auto' : 'none'} style={{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 8, paddingTop: 8, opacity: rec === 'idle' ? 1 : 0 }}>
           <PressScale onPress={onAttach} feedback="select" scaleTo={0.85} accessibilityLabel="Прикрепить" hitSlop={6} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="paperclip" size={24} color={t.sub} />
           </PressScale>
@@ -299,7 +320,28 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
             <View style={{ width: 38, height: 38 }} />
           )}
         </View>
-      )}
+        {rec !== 'idle' ? (
+        <Reanimated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={[barBg, { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 8 }]}>
+          <Animated.View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#E5533D', opacity: blink, marginRight: 8 }} />
+          <Text style={{ color: t.text, fontSize: 16, fontVariant: ['tabular-nums'], width: 50 }}>{duration(elapsed)}</Text>
+          {rec === 'recording' ? (
+            <Reanimated.View entering={SlideInRight.springify().damping(18)} style={{ flex: 1 }}>
+              <Animated.Text style={{ textAlign: 'center', color: t.sub, fontSize: 15, opacity: dragX.interpolate({ inputRange: [-120, -40, 0], outputRange: [0.2, 0.8, 1], extrapolate: 'clamp' }), transform: [{ translateX: Animated.add(Animated.multiply(dragX, 0.5), nudge) }] }}>
+                ‹ влево — отмена
+              </Animated.Text>
+            </Reanimated.View>
+          ) : (
+            <Reanimated.View entering={FadeInDown.duration(200)} style={{ flex: 1 }}>
+              <Pressable style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }} onPress={() => finishRec(false)} hitSlop={10} accessibilityLabel="Удалить запись">
+                <Icon name="trash" size={20} color={t.danger} />
+                <Text style={{ color: t.danger, fontSize: 17, marginLeft: 6 }}>Удалить</Text>
+              </Pressable>
+            </Reanimated.View>
+          )}
+          <View style={{ width: 64 }} />
+        </Reanimated.View>
+        ) : null}
+      </View>
 
       {/* Кнопка микрофона: держать — запись, влево — отмена, вверх — замок */}
       {!showSend || rec !== 'idle' ? (
@@ -340,6 +382,6 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
           )}
         </View>
       ) : null}
-    </View>
+    </Reanimated.View>
   );
 }
