@@ -1,7 +1,9 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { FlatList, Keyboard, Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { KeyboardController, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { resolveUri } from '../../files';
@@ -15,6 +17,7 @@ import { useTheme } from '../../theme';
 import Avatar from '../../ui/Avatar';
 import EditTextModal from '../../ui/EditTextModal';
 import Icon from '../../ui/Icon';
+import { wait } from '../../ui/motion';
 import Wallpaper from '../../ui/Wallpaper';
 import AttachSheet from './AttachSheet';
 import Bubble from './Bubble';
@@ -49,6 +52,26 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   const [showDown, setShowDown] = useState(false);
 
   useEffect(() => () => stopPlayback(), []);
+
+  // Поле ввода едет вместе с клавиатурой кадр в кадр (UI-поток), без KeyboardAvoidingView-рывков.
+  // Нижний отступ под «чёлку» внутри панели ввода уже есть — его вычитаем, чтобы не было щели.
+  const kb = useReanimatedKeyboardAnimation();
+  const bottomPad = Math.max(insets.bottom, 8) - 8;
+  const kbSpacer = useAnimatedStyle(() => ({ height: Math.max(0, -kb.height.value - bottomPad) }));
+
+  // Клавиатура поднимается — шторка скрепки закрывается, как в Telegram
+  useEffect(() => {
+    const sub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setAttach(false));
+    return () => sub.remove();
+  }, []);
+
+  const openAttach = useCallback(async () => {
+    // сначала дожидаемся, пока клавиатура уедет, потом открываем шторку — иначе поле ввода
+    // проезжает сквозь шторку и текст на мгновение рисуется поверх камеры
+    if (KeyboardController.isVisible()) await Promise.race([KeyboardController.dismiss(), wait(450)]);
+    else Keyboard.dismiss();
+    setAttach(true);
+  }, []);
 
   const items = useMemo(() => {
     const out: Item[] = [];
@@ -312,7 +335,7 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
         </View>
       ) : null}
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
           <Wallpaper wallpaper={wallpaper} dark={t.dark} />
           {notes.length === 0 ? (
@@ -422,17 +445,16 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
               setReplyTo(null);
               setEditing(null);
             }}
-            onAttach={() => {
-              Keyboard.dismiss();
-              setAttach(true);
-            }}
+            onAttach={openAttach}
+            onFocus={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
             onSent={() => {
               setReplyTo(null);
               listRef.current?.scrollToOffset({ offset: 0, animated: true });
             }}
           />
         )}
-      </KeyboardAvoidingView>
+        <Reanimated.View style={kbSpacer} />
+      </View>
 
       <AttachSheet
         t={t}

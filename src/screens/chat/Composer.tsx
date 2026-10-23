@@ -22,6 +22,7 @@ type Props = {
   editing: Note | null;
   onCancelContext: () => void;
   onAttach: () => void;
+  onFocus?: () => void;
   onSent: () => void;
   text: string;
   setText: (s: string) => void;
@@ -29,7 +30,7 @@ type Props = {
 
 type RecState = 'idle' | 'recording' | 'locked';
 
-export default function Composer({ t, chatId, replyTo, editing, onCancelContext, onAttach, onSent, text, setText }: Props) {
+export default function Composer({ t, chatId, replyTo, editing, onCancelContext, onAttach, onFocus, onSent, text, setText }: Props) {
   const insets = useSafeAreaInsets();
   const recorder = useAudioRecorder(REC_OPTIONS);
   const recState = useAudioRecorderState(recorder, 100);
@@ -235,6 +236,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
             ref={inputRef}
             value={text}
             onChangeText={setText}
+            onFocus={onFocus}
             placeholder="Заметка"
             placeholderTextColor={t.sub}
             multiline

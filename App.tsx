@@ -2,6 +2,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, AppState, StyleSheet, Text, View } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import Navigation from './src/navigation';
@@ -82,7 +83,9 @@ export default function App() {
   return (
     <ErrorBoundary title="Listik не смог запуститься">
       <SafeAreaProvider>
-        <Root />
+        <KeyboardProvider>
+          <Root />
+        </KeyboardProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
   );
