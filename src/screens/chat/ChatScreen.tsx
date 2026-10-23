@@ -3,7 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Keyboard, Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { KeyboardController, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
+import Reanimated, { FadeInDown, FadeOutDown, ZoomIn, ZoomOut, LinearTransition, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { resolveUri } from '../../files';
@@ -25,6 +25,9 @@ import Composer from './Composer';
 import ContextMenu, { type MenuItem } from './ContextMenu';
 
 type Item = { k: 'n'; note: Note } | { k: 'd'; key: string; t: number };
+
+// соседние пузыри плавно сдвигаются, когда заметка добавляется или удаляется
+const cellLayout = LinearTransition.springify().damping(24).stiffness(260).mass(0.9);
 
 export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   const { chatId } = route.params;
@@ -50,6 +53,18 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   const [hitIdx, setHitIdx] = useState(0);
   const [transcriptNote, setTranscriptNote] = useState<Note | null>(null);
   const [showDown, setShowDown] = useState(false);
+  const [removing, setRemoving] = useState<string[]>([]);
+
+  // удаление: пузырь схлопывается, затем заметка уходит в «Недавно удалённые», соседи съезжаются
+  const removeNotes = useCallback((ids: string[]) => {
+    haptic.warning();
+    setRemoving(ids);
+    setTimeout(() => {
+      actions.deleteNotes(ids);
+      setRemoving([]);
+      toast('Перемещено в «Недавно удалённые»');
+    }, 210);
+  }, []);
 
   useEffect(() => () => stopPlayback(), []);
 
@@ -226,11 +241,9 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
         icon: 'trash',
         destructive: true,
         onPress: () => {
-          haptic.warning();
-          actions.deleteNotes([n.id]);
+          removeNotes([n.id]);
           if (replyTo?.id === n.id) setReplyTo(null);
           if (editing?.id === n.id) setEditing(null);
-          toast('Перемещено в «Недавно удалённые»');
         },
       },
     );
@@ -322,11 +335,14 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
                 <View style={{ width: 2, flex: 1, borderRadius: 1, backgroundColor: t.accent }} />
               )}
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, overflow: 'hidden' }}>
               <Text style={{ color: t.accent, fontWeight: '600', fontSize: 14 }}>
                 Закреплённое{pins.length > 1 ? ` #${pinIdx + 1}` : ''}
               </Text>
-              <Text numberOfLines={1} style={{ color: t.text, fontSize: 14 }}>{notePreview(pin)}</Text>
+              {/* текст закрепа плавно сменяется при листании */}
+              <Reanimated.Text key={pin.id} entering={FadeInDown.duration(220)} exiting={FadeOutDown.duration(160)} numberOfLines={1} style={{ color: t.text, fontSize: 14 }}>
+                {notePreview(pin)}
+              </Reanimated.Text>
             </View>
           </Pressable>
           <Pressable onPress={() => navigation.navigate('PinnedList', { chatId })} hitSlop={8} style={{ paddingHorizontal: 14, paddingVertical: 10 }}>
@@ -346,10 +362,11 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
               </View>
             </View>
           ) : (
-            <FlatList
+            <Reanimated.FlatList
               ref={listRef}
               data={items}
               inverted
+              itemLayoutAnimation={cellLayout}
               keyExtractor={(it) => (it.k === 'n' ? it.note.id : it.key)}
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
@@ -375,6 +392,7 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
                     selecting={selecting}
                     selected={selected.includes(item.note.id)}
                     highlighted={highlight === item.note.id}
+                    removing={removing.includes(item.note.id)}
                     onPress={onPress}
                     onLongPress={onLongPress}
                     onReply={onReply}
@@ -388,12 +406,17 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
             />
           )}
           {showDown ? (
+            <Reanimated.View entering={ZoomIn.springify().damping(16)} exiting={ZoomOut.duration(150)} style={{ position: 'absolute', right: 12, bottom: 12 }}>
             <Pressable
-              onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-              style={{ position: 'absolute', right: 12, bottom: 12, width: 40, height: 40, borderRadius: 20, backgroundColor: t.chatBar, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } }}
+              onPress={() => {
+                haptic.light();
+                listRef.current?.scrollToOffset({ offset: 0, animated: true });
+              }}
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.chatBar, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } }}
             >
               <Icon name="chevronDown" size={20} color={t.chatSub} />
             </Pressable>
+            </Reanimated.View>
           ) : null}
         </View>
 
@@ -402,9 +425,7 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
             <Pressable
               disabled={!selected.length}
               onPress={() => {
-                haptic.warning();
-                actions.deleteNotes(selected);
-                toast('Перемещено в «Недавно удалённые»');
+                removeNotes(selected);
                 exitSelect();
               }}
             >

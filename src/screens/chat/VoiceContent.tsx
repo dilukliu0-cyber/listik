@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import Reanimated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { duration } from '../../format';
 import { haptic } from '../../haptics';
@@ -8,6 +9,7 @@ import { transcribe } from '../../services/transcriber';
 import { actions, type Note } from '../../store';
 import type { Theme } from '../../theme';
 import Icon from '../../ui/Icon';
+import { PressScale } from '../../ui/motion';
 
 type Props = {
   note: Note;
@@ -61,8 +63,10 @@ export function TranscribeButton({ note, color }: { note: Note; color: string })
   if (busy) return <ActivityIndicator size="small" color={color} style={{ marginLeft: 6 }} />;
   const expanded = !!v.expanded && v.status === 'done';
   return (
-    <Pressable
+    <PressScale
       hitSlop={8}
+      feedback="none"
+      scaleTo={0.85}
       onPress={() => {
         haptic.light();
         if (v.status === 'done') actions.updateVoice(note.id, { expanded: !v.expanded });
@@ -74,7 +78,7 @@ export function TranscribeButton({ note, color }: { note: Note; color: string })
       style={{ borderWidth: 1.2, borderColor: color, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 6 }}
     >
       <Text style={{ color, fontSize: 12, fontWeight: '700' }}>{expanded ? 'A↑' : '→A'}</Text>
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -89,7 +93,9 @@ export default function VoiceContent({ note, t, accent, sub, textColor, fontSize
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Pressable
+        <PressScale
+          feedback="none"
+          scaleTo={0.88}
           onPress={() => {
             haptic.light();
             togglePlay(note.id, v.uri, v.duration);
@@ -97,7 +103,7 @@ export default function VoiceContent({ note, t, accent, sub, textColor, fontSize
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: accent, alignItems: 'center', justifyContent: 'center', marginRight: 9 }}
         >
           <Icon name={play.playing ? 'pause' : 'play'} size={18} color={t.dark && !compact ? '#1B3A57' : '#fff'} />
-        </Pressable>
+        </PressScale>
         <View style={{ flex: compact ? 1 : undefined }}>
           <Waveform wave={v.wave} progress={pos} color={accent} bars={compact ? 28 : BARS} />
           <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>{duration(shown)}</Text>
@@ -116,13 +122,15 @@ export default function VoiceContent({ note, t, accent, sub, textColor, fontSize
       ) : null}
 
       {v.status !== 'none' && v.expanded && v.transcript !== undefined && !busy ? (
-        <Pressable onPress={onEditTranscript} disabled={!onEditTranscript}>
-          <View style={{ marginTop: 6, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: compact ? t.line : t.quoteLine }}>
-            <Text style={{ color: v.transcript ? textColor : sub, fontSize, lineHeight: fontSize * 1.3 }}>
-              {v.transcript || 'Речь не распознана'}
-            </Text>
-          </View>
-        </Pressable>
+        <Reanimated.View entering={FadeIn.duration(240).delay(60)} exiting={FadeOut.duration(140)}>
+          <Pressable onPress={onEditTranscript} disabled={!onEditTranscript}>
+            <View style={{ marginTop: 6, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: compact ? t.line : t.quoteLine }}>
+              <Text style={{ color: v.transcript ? textColor : sub, fontSize, lineHeight: fontSize * 1.3 }}>
+                {v.transcript || 'Речь не распознана'}
+              </Text>
+            </View>
+          </Pressable>
+        </Reanimated.View>
       ) : null}
     </View>
   );

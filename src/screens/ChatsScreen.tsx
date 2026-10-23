@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
 import { FlatList, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Reanimated, { LinearTransition } from 'react-native-reanimated';
 
 import { dateShort, listTime } from '../format';
 import { haptic } from '../haptics';
@@ -15,6 +16,9 @@ import ChatRow from '../ui/ChatRow';
 import Icon from '../ui/Icon';
 import { HeaderButton, TabHeader } from '../ui/kit';
 import SwipeRow, { closeOpenRow } from '../ui/SwipeRow';
+
+// строки чатов плавно съезжаются при закреплении, архивации и удалении
+const rowLayout = LinearTransition.springify().damping(24).stiffness(240);
 
 type Nav = NativeStackNavigationProp<RootStack>;
 
@@ -231,8 +235,9 @@ export default function ChatsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       {header}
-      <FlatList
+      <Reanimated.FlatList
         data={chats}
+        itemLayoutAnimation={rowLayout}
         keyExtractor={(c) => c.id}
         keyboardDismissMode="on-drag"
         onScrollBeginDrag={closeOpenRow}

@@ -1,5 +1,6 @@
-import { memo, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { Animated, Image, PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import Reanimated, { FadeInUp, LinearTransition, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { resolveUri } from '../../files';
 import { bytes, time } from '../../format';
@@ -7,6 +8,7 @@ import { haptic } from '../../haptics';
 import { actions, notePreview, useStore, type Note } from '../../store';
 import type { Theme } from '../../theme';
 import Icon from '../../ui/Icon';
+import { SPRING_BOUNCY } from '../../ui/motion';
 import RichText from './RichText';
 import VoiceContent from './VoiceContent';
 
@@ -25,7 +27,12 @@ type Props = {
   onOpenFile: (n: Note) => void;
   onEditTranscript: (n: Note) => void;
   preview?: boolean; // копия в контекстном меню — без жестов
+  removing?: boolean; // идёт анимация удаления
 };
+
+// Новая заметка выезжает снизу: подпрыгивает на пружине и проявляется
+const enterNew = FadeInUp.springify().damping(20).stiffness(240).mass(0.8);
+const resize = LinearTransition.duration(220);
 
 function TimeTag({ note, color }: { note: Note; color: string }) {
   return (
@@ -159,7 +166,27 @@ export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile,
 }
 
 function Bubble(props: Props) {
-  const { note, t, selecting, selected, highlighted, onPress, onLongPress, onReply, preview } = props;
+  const { note, t, selecting, selected, highlighted, onPress, onLongPress, onReply, preview, removing } = props;
+  // анимируем появление только у только что созданных заметок, а не у всей ленты при открытии чата
+  const fresh = useRef(Date.now() - note.createdAt < 1500).current;
+  const out = useSharedValue(0);
+  const glow = useSharedValue(0);
+  const press = useSharedValue(1);
+
+  useEffect(() => {
+    if (removing) out.value = withTiming(1, { duration: 200 });
+  }, [removing, out]);
+
+  // переход из закрепа / поиска: пузырь мягко подсвечивается и гаснет
+  useEffect(() => {
+    if (highlighted) glow.value = withSequence(withTiming(1, { duration: 220 }), withDelay(900, withTiming(0, { duration: 450 })));
+  }, [highlighted, glow]);
+
+  const outStyle = useAnimatedStyle(() => ({
+    opacity: 1 - out.value,
+    transform: [{ scale: (1 - out.value * 0.15) * press.value }],
+  }));
+  const glowStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
   const { width } = useWindowDimensions();
   const maxW = Math.round(width * 0.8);
   const x = useRef(new Animated.Value(0)).current;
@@ -173,6 +200,7 @@ function Bubble(props: Props) {
       onMoveShouldSetPanResponder: (_, g) => !cb.current.selecting && g.dx < -12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8,
       onPanResponderGrant: () => {
         fired.current = false;
+        x.stopAnimation();
       },
       onPanResponderMove: (_, g) => {
         const v = Math.max(-90, Math.min(0, g.dx));
@@ -185,13 +213,14 @@ function Bubble(props: Props) {
       },
       onPanResponderRelease: () => {
         if (fired.current) cb.current.onReply(cb.current.note);
-        Animated.spring(x, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
+        Animated.spring(x, { toValue: 0, useNativeDriver: true, speed: 14, bounciness: 9 }).start();
       },
       onPanResponderTerminate: () => Animated.spring(x, { toValue: 0, useNativeDriver: true }).start(),
     }),
   ).current;
 
   const replyOpacity = x.interpolate({ inputRange: [-60, -20, 0], outputRange: [1, 0.2, 0], extrapolate: 'clamp' });
+  const replyScale = x.interpolate({ inputRange: [-90, -60, -20, 0], outputRange: [1.15, 1, 0.5, 0.5], extrapolate: 'clamp' });
   const isPhotoOnly = note.kind === 'photo' && !note.text && !note.replyTo;
 
   const body = (
@@ -211,15 +240,24 @@ function Bubble(props: Props) {
   if (preview) return body;
 
   return (
+    <Reanimated.View entering={fresh ? enterNew : undefined} layout={resize}>
     <Pressable
       onPress={() => onPress(note)}
+      onPressIn={() => {
+        if (!selecting) press.value = withDelay(120, withTiming(0.97, { duration: 180 }));
+      }}
+      onPressOut={() => {
+        press.value = withSpring(1, SPRING_BOUNCY);
+      }}
       onLongPress={() => {
         haptic.medium();
+        press.value = withSpring(1, SPRING_BOUNCY);
         onLongPress(note);
       }}
       delayLongPress={300}
-      style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: highlighted ? (t.dark ? 'rgba(62,136,247,0.25)' : 'rgba(51,144,236,0.18)') : selected ? 'rgba(51,144,236,0.12)' : 'transparent', flexDirection: 'row', alignItems: 'center' }}
+      style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: selected ? 'rgba(51,144,236,0.12)' : 'transparent', flexDirection: 'row', alignItems: 'center' }}
     >
+      <Reanimated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: t.dark ? 'rgba(62,136,247,0.25)' : 'rgba(51,144,236,0.18)' }, glowStyle]} />
       {selecting ? (
         <View style={{ width: 34 }}>
           <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: selected ? 0 : 1.5, borderColor: '#fff', backgroundColor: selected ? t.accent : 'rgba(0,0,0,0.15)', alignItems: 'center', justifyContent: 'center' }}>
@@ -228,16 +266,19 @@ function Bubble(props: Props) {
         </View>
       ) : null}
       <View style={{ flex: 1, alignItems: 'flex-end' }}>
-        <Animated.View style={{ position: 'absolute', right: -4, top: 0, bottom: 0, justifyContent: 'center', opacity: replyOpacity }}>
+        <Animated.View style={{ position: 'absolute', right: -4, top: 0, bottom: 0, justifyContent: 'center', opacity: replyOpacity, transform: [{ scale: replyScale }] }}>
           <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="reply" size={16} color="#fff" />
           </View>
         </Animated.View>
         <Animated.View style={{ transform: [{ translateX: x }] }} {...pan.panHandlers}>
-          <View pointerEvents={selecting ? 'none' : 'auto'}>{body}</View>
+          <Reanimated.View pointerEvents={selecting ? 'none' : 'auto'} style={outStyle}>
+            {body}
+          </Reanimated.View>
         </Animated.View>
       </View>
     </Pressable>
+    </Reanimated.View>
   );
 }
 
