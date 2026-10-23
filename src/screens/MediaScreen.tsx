@@ -7,8 +7,8 @@ import { resolveUri } from '../files';
 import { monthKey, monthLabel } from '../format';
 import { haptic } from '../haptics';
 import type { RootStack } from '../navigation/types';
-import { toast } from '../runtime';
-import { actions, useStore, type Note } from '../store';
+import { confirmDeleteNotes, deleteNotesWithUndo } from '../ui/dialogs';
+import { useStore, type Note } from '../store';
 import { useTheme } from '../theme';
 import Icon from '../ui/Icon';
 import { HeaderButton, TabHeader } from '../ui/kit';
@@ -82,13 +82,13 @@ export default function MediaScreen() {
               icon="trash"
               color={t.danger}
               disabled={!selected.length}
-              onPress={() => {
-                actions.deleteNotes(selected);
-                haptic.warning();
-                toast('Перемещено в «Недавно удалённые»');
-                setSelecting(false);
-                setSelected([]);
-              }}
+              onPress={() =>
+                confirmDeleteNotes(selected, (ids) => {
+                  deleteNotesWithUndo(ids);
+                  setSelecting(false);
+                  setSelected([]);
+                })
+              }
             />
           ) : (
             <HeaderButton

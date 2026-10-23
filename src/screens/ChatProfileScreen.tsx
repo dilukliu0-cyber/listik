@@ -8,11 +8,11 @@ import { bytes, dateLong, dayAndTime, duration, monthKey, monthLabel, notesCount
 import { haptic } from '../haptics';
 import { openChatAt } from '../navigation/ref';
 import type { ScreenProps } from '../navigation/types';
-import { toast } from '../runtime';
-import { actions, chatNotes, extractLinks, notePreview, useStore, type Note } from '../store';
+import { toast, undoToast } from '../runtime';
+import { actions, chatNotes, extractLinks, notePreview, store, useStore, type Note } from '../store';
 import { useTheme, type Theme } from '../theme';
 import Avatar from '../ui/Avatar';
-import { confirm, showActions } from '../ui/dialogs';
+import { confirmDeleteChats, confirmSheet, showActions } from '../ui/dialogs';
 import Icon, { type IconName } from '../ui/Icon';
 import VoiceContent from './chat/VoiceContent';
 
@@ -196,20 +196,22 @@ export default function ChatProfileScreen({ route, navigation }: ScreenProps<'Ch
                 label: 'Очистить историю',
                 destructive: true,
                 onPress: () =>
-                  confirm('Очистить историю?', 'Все заметки чата попадут в «Недавно удалённые» на 30 дней.', 'Очистить', () => {
-                    actions.clearChat(chatId);
-                    haptic.warning();
-                  }),
+                  confirmSheet(
+                    'Очистить историю?',
+                    'Очистить историю',
+                    () => {
+                      const ids = chatNotes(store.get(), chatId).map((n) => n.id);
+                      actions.clearChat(chatId);
+                      haptic.warning();
+                      undoToast('История очищена', () => actions.restoreNotes(ids));
+                    },
+                    'Все заметки чата будут в «Недавно удалённых» 30 дней.',
+                  ),
               },
               {
                 label: 'Удалить чат',
                 destructive: true,
-                onPress: () =>
-                  confirm('Удалить чат?', 'Чат попадёт в «Недавно удалённые» на 30 дней, потом удалится навсегда.', 'Удалить', () => {
-                    actions.deleteChat(chatId);
-                    haptic.warning();
-                    navigation.popToTop();
-                  }),
+                onPress: () => confirmDeleteChats([chatId], () => navigation.popToTop()),
               },
             ]),
           )}

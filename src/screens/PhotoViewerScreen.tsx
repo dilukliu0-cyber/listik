@@ -11,7 +11,7 @@ import { openChatAt } from '../navigation/ref';
 import type { ScreenProps } from '../navigation/types';
 import { toast } from '../runtime';
 import { actions, useStore } from '../store';
-import { showActions } from '../ui/dialogs';
+import { confirmDeleteNotes, deleteNotesWithUndo, showActions } from '../ui/dialogs';
 import Icon from '../ui/Icon';
 
 export default function PhotoViewerScreen({ route, navigation }: ScreenProps<'PhotoViewer'>) {
@@ -54,13 +54,12 @@ export default function PhotoViewerScreen({ route, navigation }: ScreenProps<'Ph
     if (await Sharing.isAvailableAsync()) Sharing.shareAsync(resolveUri(cur.photo!.uri)).catch(() => {});
     else toast('Поделиться можно в приложении на iPhone');
   };
-  const del = () => {
-    haptic.warning();
-    actions.deleteNotes([cur.id]);
-    toast('Перемещено в «Недавно удалённые»');
-    if (list.length <= 1) navigation.goBack();
-    else setIndex((i) => Math.min(i, list.length - 2));
-  };
+  const del = () =>
+    confirmDeleteNotes([cur.id], (ids) => {
+      deleteNotesWithUndo(ids);
+      if (list.length <= 1) navigation.goBack();
+      else setIndex((i) => Math.min(i, list.length - 2));
+    });
   const showInChat = () => {
     navigation.goBack();
     setTimeout(() => openChatAt(cur.chatId, cur.id), 50);

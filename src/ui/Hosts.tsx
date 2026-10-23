@@ -1,10 +1,12 @@
 // Глобальные окна: всплывашка, объяснение доступа, «Хотите точнее?», меню на web.
 import { useRef, useSyncExternalStore } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
+import Reanimated, { FadeInDown, FadeInUp, FadeOut, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { navigate } from '../navigation/ref';
-import { runtime, useRuntime } from '../runtime';
+import { haptic } from '../haptics';
+import { hideToast, runtime, useRuntime } from '../runtime';
 import { PERM_INFO, answerPrompt, promptDismissed, promptStore } from '../services/permissions';
 import { startDownload } from '../services/whisperModel';
 import { useTheme } from '../theme';
@@ -17,11 +19,35 @@ function Toast() {
   const insets = useSafeAreaInsets();
   const toast = useRuntime((r) => r.toast);
   if (!toast) return null;
+  const bg = t.dark ? 'rgba(60,60,64,0.96)' : 'rgba(30,30,32,0.92)';
+  if (toast.action) {
+    // тост с действием — снизу, над панелью ввода / вкладками
+    const a = toast.action;
+    return (
+      <View pointerEvents="box-none" style={{ position: 'absolute', left: 10, right: 10, bottom: insets.bottom + 62 }}>
+        <Reanimated.View key={toast.id} entering={FadeInDown.springify().damping(18).stiffness(220)} exiting={FadeOutDown.duration(160)} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: bg, borderRadius: 14, paddingLeft: 16, minHeight: 48 }}>
+          <Icon name="trash" size={20} color="#fff" />
+          <Text style={{ flex: 1, color: '#fff', fontSize: 15, marginLeft: 10 }}>{toast.text}</Text>
+          <Pressable
+            hitSlop={8}
+            onPress={() => {
+              hideToast();
+              haptic.light();
+              a.onPress();
+            }}
+            style={({ pressed }) => ({ paddingHorizontal: 16, paddingVertical: 14, opacity: pressed ? 0.5 : 1 })}
+          >
+            <Text style={{ color: '#5AB0FF', fontSize: 15, fontWeight: '600' }}>{a.label}</Text>
+          </Pressable>
+        </Reanimated.View>
+      </View>
+    );
+  }
   return (
     <View pointerEvents="none" style={{ position: 'absolute', left: 16, right: 16, top: insets.top + 8, alignItems: 'center' }}>
-      <View style={{ backgroundColor: t.dark ? 'rgba(60,60,64,0.96)' : 'rgba(30,30,32,0.92)', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 }}>
+      <Reanimated.View key={toast.id} entering={FadeInUp.duration(180)} exiting={FadeOut.duration(160)} style={{ backgroundColor: bg, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 11 }}>
         <Text style={{ color: '#fff', fontSize: 15 }}>{toast.text}</Text>
-      </View>
+      </Reanimated.View>
     </View>
   );
 }

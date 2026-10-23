@@ -18,6 +18,7 @@ import Avatar from '../../ui/Avatar';
 import EditTextModal from '../../ui/EditTextModal';
 import Icon from '../../ui/Icon';
 import { useBgTransition, wait } from '../../ui/motion';
+import { confirmDeleteNotes, deleteNotesWithUndo } from '../../ui/dialogs';
 import Wallpaper from '../../ui/Wallpaper';
 import AttachSheet from './AttachSheet';
 import Bubble from './Bubble';
@@ -58,14 +59,16 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   const [removing, setRemoving] = useState<string[]>([]);
 
   // удаление: пузырь схлопывается, затем заметка уходит в «Недавно удалённые», соседи съезжаются
-  const removeNotes = useCallback((ids: string[]) => {
-    haptic.warning();
-    setRemoving(ids);
-    setTimeout(() => {
-      actions.deleteNotes(ids);
-      setRemoving([]);
-      toast('Перемещено в «Недавно удалённые»');
-    }, 210);
+  // сначала подтверждение снизу, после удаления — тост «Отменить»
+  const removeNotes = useCallback((ids: string[], after?: () => void) => {
+    confirmDeleteNotes(ids, () => {
+      after?.();
+      setRemoving(ids);
+      setTimeout(() => {
+        deleteNotesWithUndo(ids);
+        setRemoving([]);
+      }, 210);
+    });
   }, []);
 
   useEffect(() => () => stopPlayback(), []);
@@ -243,9 +246,10 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
         icon: 'trash',
         destructive: true,
         onPress: () => {
-          removeNotes([n.id]);
-          if (replyTo?.id === n.id) setReplyTo(null);
-          if (editing?.id === n.id) setEditing(null);
+          removeNotes([n.id], () => {
+            if (replyTo?.id === n.id) setReplyTo(null);
+            if (editing?.id === n.id) setEditing(null);
+          });
         },
       },
     );
@@ -429,10 +433,7 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12), backgroundColor: t.chatBar }}>
             <Pressable
               disabled={!selected.length}
-              onPress={() => {
-                removeNotes(selected);
-                exitSelect();
-              }}
+              onPress={() => removeNotes(selected, exitSelect)}
             >
               <Icon name="trash" size={24} color={selected.length ? t.danger : t.sub} />
             </Pressable>

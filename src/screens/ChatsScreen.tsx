@@ -10,7 +10,7 @@ import type { RootStack } from '../navigation/types';
 import { actions, lastActivity, notePreview, noteSearchText, store, useStore, type Chat, type Note } from '../store';
 import { TEMPLATES } from '../templates';
 import { useTheme } from '../theme';
-import { toast } from '../runtime';
+import { confirmDeleteChats } from '../ui/dialogs';
 import Avatar from '../ui/Avatar';
 import ChatRow from '../ui/ChatRow';
 import Icon from '../ui/Icon';
@@ -51,11 +51,7 @@ export function chatSwipeActions(chat: Chat, t: ReturnType<typeof useTheme>) {
         label: 'Удалить',
         icon: 'trash' as const,
         color: t.danger,
-        onPress: () => {
-          haptic.warning();
-          actions.deleteChat(chat.id);
-          toast('Чат перемещён в «Недавно удалённые»');
-        },
+        onPress: () => confirmDeleteChats([chat.id]),
       },
       {
         label: chat.archived ? 'Вернуть' : 'В архив',
@@ -307,12 +303,7 @@ export default function ChatsScreen() {
             title="Удалить"
             color={t.danger}
             disabled={!selected.length}
-            onPress={() => {
-              selected.forEach((id) => actions.deleteChat(id));
-              haptic.warning();
-              toast('Перемещено в «Недавно удалённые»');
-              finishEdit();
-            }}
+            onPress={() => confirmDeleteChats(selected, finishEdit)}
           />
         </View>
       ) : null}

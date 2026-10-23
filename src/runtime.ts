@@ -10,10 +10,12 @@ export type ModelState = {
   error?: string;
 };
 
+export type ToastAction = { label: string; onPress: () => void };
+
 export type Runtime = {
   progress: Record<string, number>; // noteId → 0..100
   model: ModelState;
-  toast: { id: number; text: string } | null;
+  toast: { id: number; text: string; action?: ToastAction } | null;
   upsell: boolean; // шторка «Хотите точнее?»
   ready: boolean;
 };
@@ -32,11 +34,22 @@ export function useRuntime<R>(selector: (r: Runtime) => R): R {
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
-export function toast(text: string) {
+export function toast(text: string, action?: ToastAction) {
   const id = Date.now();
-  runtime.set((r) => ({ ...r, toast: { id, text } }));
+  runtime.set((r) => ({ ...r, toast: { id, text, action } }));
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => runtime.set((r) => ({ ...r, toast: null })), 2400);
+  toastTimer = setTimeout(() => runtime.set((r) => (r.toast?.id === id ? { ...r, toast: null } : r)), action ? 5000 : 2400);
+}
+
+export function hideToast() {
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = null;
+  runtime.set((r) => ({ ...r, toast: null }));
+}
+
+/** Тост снизу «… · Отменить» на 5 секунд, как в Telegram */
+export function undoToast(text: string, onUndo: () => void) {
+  toast(text, { label: 'Отменить', onPress: onUndo });
 }
 
 export function setProgress(noteId: string, value: number | null) {
