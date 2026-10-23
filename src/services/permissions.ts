@@ -65,16 +65,33 @@ function prompt(kind: PermKind, mode: 'intro' | 'denied'): Promise<boolean> {
   return new Promise((resolve) => promptStore.set({ kind, mode, resolve }));
 }
 
+// Ответ отдаётся только когда окно полностью исчезло: iOS не покажет системный запрос
+// или камеру поверх закрывающегося Modal — приложение зависнет.
+let pendingAnswer: (() => void) | null = null;
+let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function promptDismissed() {
+  if (pendingTimer) clearTimeout(pendingTimer);
+  pendingTimer = null;
+  const f = pendingAnswer;
+  pendingAnswer = null;
+  f?.();
+}
+
 export function answerPrompt(ok: boolean) {
   const p = promptStore.get();
   promptStore.set(null);
   if (!p) return;
-  if (ok && p.mode === 'denied') {
-    Linking.openSettings().catch(() => {});
-    p.resolve(false);
-    return;
-  }
-  p.resolve(ok);
+  promptDismissed();
+  pendingAnswer = () => {
+    if (ok && p.mode === 'denied') {
+      Linking.openSettings().catch(() => {});
+      p.resolve(false);
+      return;
+    }
+    p.resolve(ok);
+  };
+  pendingTimer = setTimeout(promptDismissed, Platform.OS === 'ios' ? 700 : 0);
 }
 
 /** true — доступ есть. Можно вызывать в любой момент, окно покажется только когда нужно. */

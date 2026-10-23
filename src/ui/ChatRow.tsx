@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { listTime } from '../format';
+import { haptic } from '../haptics';
 import { chatNotes, lastActivity, notePreview, openItems, useStore, type Chat } from '../store';
 import { useTheme } from '../theme';
 import Avatar from './Avatar';
@@ -24,7 +25,15 @@ function ChatRow({ chat, onPress, onLongPress, selecting, selected }: Props) {
   const time = useStore((s) => lastActivity(s, chat));
   const open = useStore((s) => openItems(s, chat.id));
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress} delayLongPress={350} style={({ pressed }) => ({ backgroundColor: pressed ? t.line : t.bg })}>
+    <Pressable
+      onPress={() => {
+        if (!selecting) haptic.select();
+        onPress();
+      }}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      unstable_pressDelay={40}
+      style={({ pressed }) => ({ backgroundColor: pressed ? t.line : t.bg })}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 12 }}>
         {selecting ? (
           <View style={{ marginRight: 10 }}>

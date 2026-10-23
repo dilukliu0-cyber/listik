@@ -1,11 +1,13 @@
 // Общие элементы в стиле iOS: сгруппированные списки, переключатели, шапки, шторки.
-import type { ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Switch, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Modal, PanResponder, Pressable, StyleSheet, Switch, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptic } from '../haptics';
 import { useTheme } from '../theme';
 import Icon, { type IconName } from './Icon';
+import { PressScale, SPRING, usePresence } from './motion';
 
 export function Group({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const t = useTheme();
@@ -39,7 +41,19 @@ type RowProps = {
 export function Row({ icon, iconBg, title, subtitle, value, chevron, last, onPress, color, center, right, left }: RowProps) {
   const t = useTheme();
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [{ backgroundColor: pressed ? t.line : 'transparent' }]}>
+    <Pressable
+      onPress={
+        onPress
+          ? () => {
+              haptic.select();
+              onPress();
+            }
+          : undefined
+      }
+      disabled={!onPress}
+      unstable_pressDelay={40}
+      style={({ pressed }) => [{ backgroundColor: pressed ? t.line : 'transparent' }]}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 16, minHeight: 46 }}>
         {left}
         {icon ? (
@@ -100,10 +114,7 @@ export function CheckRow({ title, subtitle, checked, onPress, last, right }: { t
       title={title}
       subtitle={subtitle}
       last={last}
-      onPress={() => {
-        haptic.select();
-        onPress();
-      }}
+      onPress={onPress}
       right={right ?? (checked ? <Icon name="check" size={18} color={t.accent} /> : null)}
     />
   );
@@ -128,24 +139,79 @@ export function HeaderButton({ title, icon, onPress, bold, color, disabled }: { 
   const t = useTheme();
   const c = disabled ? t.sub : (color ?? t.accent);
   return (
-    <Pressable onPress={onPress} disabled={disabled} hitSlop={10} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, flexDirection: 'row', alignItems: 'center' })}>
+    <Pressable
+      onPress={() => {
+        haptic.select();
+        onPress();
+      }}
+      disabled={disabled}
+      hitSlop={10}
+      style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, flexDirection: 'row', alignItems: 'center' })}
+    >
       {icon ? <Icon name={icon} size={22} color={c} /> : null}
       {title ? <Text style={{ color: c, fontSize: 17, fontWeight: bold ? '600' : '400' }}>{title}</Text> : null}
     </Pressable>
   );
 }
 
-/** Нижняя шторка с «ручкой» */
-export function Sheet({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: ReactNode }) {
+/**
+ * Нижняя шторка с «ручкой»: выезжает снизу на пружине, фон затемняется, тянется вниз для закрытия.
+ * onHidden — шторка полностью убрана (можно открывать камеру/галерею/файлы).
+ */
+export function Sheet({ visible, onClose, onHidden, children }: { visible: boolean; onClose: () => void; onHidden?: () => void; children: ReactNode }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const { mounted, progress, onDismiss, afterHidden } = usePresence(visible);
+  const h = useSharedValue(420);
+  const drag = useSharedValue(0);
+  const wasVisible = useRef(visible);
+  const hiddenRef = useRef(onHidden);
+  hiddenRef.current = onHidden;
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    if (!visible && wasVisible.current) afterHidden(() => hiddenRef.current?.());
+    if (visible) drag.value = 0;
+    wasVisible.current = visible;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  const pan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderMove: (_, g) => {
+        drag.value = Math.max(0, g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 90 || g.vy > 0.8) closeRef.current();
+        else drag.value = withSpring(0, SPRING);
+      },
+      onPanResponderTerminate: () => {
+        drag.value = withSpring(0, SPRING);
+      },
+    }),
+  ).current;
+
+  const backdrop = useAnimatedStyle(() => ({ opacity: Math.min(1, Math.max(0, progress.value)) }));
+  const panel = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - progress.value) * h.value + drag.value }] }));
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: t.overlay }} onPress={onClose} />
-      <View style={{ backgroundColor: t.dark ? '#1C1C1E' : '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: insets.bottom + 12 }}>
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} onDismiss={onDismiss} statusBarTranslucent>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: t.overlay }, backdrop]}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} />
+      </Animated.View>
+      <View style={{ flex: 1 }} pointerEvents="box-none" />
+      <Animated.View
+        {...pan.panHandlers}
+        onLayout={(e) => {
+          h.value = e.nativeEvent.layout.height + 40;
+        }}
+        style={[{ backgroundColor: t.dark ? '#1C1C1E' : '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingBottom: insets.bottom + 12 }, panel]}
+      >
         <View style={{ width: 36, height: 5, borderRadius: 3, backgroundColor: t.dark ? '#48484A' : '#D1D1D6', alignSelf: 'center', marginTop: 8, marginBottom: 12 }} />
         {children}
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
@@ -153,12 +219,9 @@ export function Sheet({ visible, onClose, children }: { visible: boolean; onClos
 export function PrimaryButton({ title, onPress, style }: { title: string; onPress: () => void; style?: StyleProp<ViewStyle> }) {
   const t = useTheme();
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [{ backgroundColor: t.accent, borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: pressed ? 0.8 : 1 }, style]}
-    >
+    <PressScale onPress={onPress} scaleTo={0.97} style={[{ backgroundColor: t.accent, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }, style]}>
       <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>{title}</Text>
-    </Pressable>
+    </PressScale>
   );
 }
 

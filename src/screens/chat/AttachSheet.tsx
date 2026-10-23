@@ -1,7 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { importFile } from '../../files';
@@ -12,6 +12,7 @@ import { actions } from '../../store';
 import type { Theme } from '../../theme';
 import Icon, { type IconName } from '../../ui/Icon';
 import { Sheet } from '../../ui/kit';
+import { PressScale } from '../../ui/motion';
 
 type Recent = { id: string; uri: string; width: number; height: number };
 
@@ -67,8 +68,20 @@ export default function AttachSheet({ t, visible, onClose, chatId, replyTo, capt
     }
   }
 
-  async function pickRecent(r: Recent) {
+  // iOS не покажет камеру/галерею, пока шторка (Modal) ещё закрывается — экран зависает.
+  // Поэтому действие ставится в очередь и выполняется после полного закрытия шторки.
+  const pending = useRef<(() => void) | null>(null);
+  const closeThen = (f: () => void) => {
+    pending.current = f;
     onClose();
+  };
+  const onHidden = () => {
+    const f = pending.current;
+    pending.current = null;
+    if (f) setTimeout(f, 30);
+  };
+
+  async function pickRecent(r: Recent) {
     try {
       const M = await import('expo-media-library/legacy');
       const info = await M.getAssetInfoAsync(r.id);
@@ -80,24 +93,24 @@ export default function AttachSheet({ t, visible, onClose, chatId, replyTo, capt
   }
 
   async function camera() {
-    onClose();
     if (Platform.OS === 'web') {
       toast('Камера работает в приложении на iPhone');
       return;
     }
     if (!(await ensurePermission('camera'))) return;
-    const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.85 }).catch(() => null);
+    const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.85, exif: false }).catch((e) => {
+      toast('Не удалось открыть камеру: ' + String((e as Error)?.message ?? e));
+      return null;
+    });
     if (r && !r.canceled) for (const a of r.assets) await addPhoto(a.uri, a.width, a.height);
   }
 
   async function gallery() {
-    onClose();
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: 10, quality: 0.85 }).catch(() => null);
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: 10, quality: 0.85, exif: false }).catch(() => null);
     if (r && !r.canceled) for (const a of r.assets) await addPhoto(a.uri, a.width, a.height);
   }
 
   async function file() {
-    onClose();
     const r = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false }).catch(() => null);
     if (!r || r.canceled) return;
     for (const a of r.assets) {
@@ -113,20 +126,20 @@ export default function AttachSheet({ t, visible, onClose, chatId, replyTo, capt
   }
 
   const btn = (icon: IconName, label: string, color: string, onPress: () => void) => (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ alignItems: 'center', width: 76, opacity: pressed ? 0.6 : 1 })}>
+    <PressScale onPress={onPress} scaleTo={0.88} style={{ alignItems: 'center', width: 76 }}>
       <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
         <Icon name={icon} size={24} color="#fff" />
       </View>
       <Text style={{ color: t.text, fontSize: 13, marginTop: 6 }}>{label}</Text>
-    </Pressable>
+    </PressScale>
   );
 
   return (
-    <Sheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose} onHidden={onHidden}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, gap: 4 }}>
-        <Pressable onPress={camera} style={{ width: 96, height: 96, borderRadius: 10, backgroundColor: '#2C2C2E', alignItems: 'center', justifyContent: 'center' }}>
+        <PressScale onPress={() => closeThen(camera)} scaleTo={0.94} style={{ width: 96, height: 96, borderRadius: 10, backgroundColor: '#2C2C2E', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="camera" size={30} color="#fff" />
-        </Pressable>
+        </PressScale>
         {noAccess ? (
           <Pressable
             onPress={() => ensurePermission('photos')}
@@ -136,19 +149,16 @@ export default function AttachSheet({ t, visible, onClose, chatId, replyTo, capt
           </Pressable>
         ) : (
           recent.map((r) => (
-            <Pressable key={r.id} onPress={() => pickRecent(r)}>
-              <ExpoImage source={{ uri: r.uri }} style={{ width: 96, height: 96, borderRadius: 10, backgroundColor: t.search }} contentFit="cover" />
-            </Pressable>
+            <PressScale key={r.id} onPress={() => closeThen(() => pickRecent(r))} scaleTo={0.94}>
+              <ExpoImage source={{ uri: r.uri }} style={{ width: 96, height: 96, borderRadius: 10, backgroundColor: t.search }} contentFit="cover" recyclingKey={r.id} transition={120} />
+            </PressScale>
           ))
         )}
       </ScrollView>
       <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingTop: 18, paddingHorizontal: 20 }}>
-        {btn('photoFill', 'Галерея', '#3390EC', gallery)}
-        {btn('file', 'Файл', '#2AABEE', file)}
-        {btn('checklist', 'Список', '#4FAE4E', () => {
-          onClose();
-          onList();
-        })}
+        {btn('photoFill', 'Галерея', '#3390EC', () => closeThen(gallery))}
+        {btn('file', 'Файл', '#2AABEE', () => closeThen(file))}
+        {btn('checklist', 'Список', '#4FAE4E', () => closeThen(onList))}
       </View>
     </Sheet>
   );

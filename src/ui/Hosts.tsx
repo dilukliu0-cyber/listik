@@ -1,11 +1,11 @@
 // Глобальные окна: всплывашка, объяснение доступа, «Хотите точнее?», меню на web.
-import { useSyncExternalStore } from 'react';
+import { useRef, useSyncExternalStore } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { navigate } from '../navigation/ref';
 import { runtime, useRuntime } from '../runtime';
-import { PERM_INFO, answerPrompt, promptStore } from '../services/permissions';
+import { PERM_INFO, answerPrompt, promptDismissed, promptStore } from '../services/permissions';
 import { startDownload } from '../services/whisperModel';
 import { useTheme } from '../theme';
 import { webSheet } from './dialogs';
@@ -28,13 +28,17 @@ function Toast() {
 
 function PermissionPrompt() {
   const t = useTheme();
-  const p = useSyncExternalStore(promptStore.subscribe, promptStore.get, promptStore.get);
+  const live = useSyncExternalStore(promptStore.subscribe, promptStore.get, promptStore.get);
+  // последнее окно держим на экране, пока Modal закрывается
+  const last = useRef(live);
+  if (live) last.current = live;
+  const p = live ?? last.current;
   if (!p) return null;
   const info = PERM_INFO[p.kind];
   const denied = p.mode === 'denied';
   const sep = { borderTopWidth: 0.5, borderTopColor: t.dark ? '#3A3A3C' : '#D1D1D6' };
   return (
-    <Modal transparent visible animationType="fade" onRequestClose={() => answerPrompt(false)}>
+    <Modal transparent visible={!!live} animationType="fade" onRequestClose={() => answerPrompt(false)} onDismiss={promptDismissed}>
       <View style={{ flex: 1, backgroundColor: t.overlay, alignItems: 'center', justifyContent: 'center' }}>
         <View style={{ width: 280, backgroundColor: t.dark ? '#2C2C2E' : '#F2F2F2', borderRadius: 14, overflow: 'hidden' }}>
           <View style={{ padding: 18, alignItems: 'center' }}>
