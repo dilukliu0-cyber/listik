@@ -1,0 +1,244 @@
+import { memo, useRef } from 'react';
+import { Animated, Image, PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
+
+import { resolveUri } from '../../files';
+import { bytes, time } from '../../format';
+import { haptic } from '../../haptics';
+import { actions, notePreview, useStore, type Note } from '../../store';
+import type { Theme } from '../../theme';
+import Icon from '../../ui/Icon';
+import RichText from './RichText';
+import VoiceContent from './VoiceContent';
+
+type Props = {
+  note: Note;
+  t: Theme;
+  fontSize: number;
+  selecting: boolean;
+  selected: boolean;
+  highlighted: boolean;
+  onPress: (n: Note) => void;
+  onLongPress: (n: Note) => void;
+  onReply: (n: Note) => void;
+  onJump: (id: string) => void;
+  onOpenPhoto: (n: Note) => void;
+  onOpenFile: (n: Note) => void;
+  onEditTranscript: (n: Note) => void;
+  preview?: boolean; // копия в контекстном меню — без жестов
+};
+
+function TimeTag({ note, color }: { note: Note; color: string }) {
+  return (
+    <Text style={{ color, fontSize: 11 }}>
+      {note.editedAt ? 'изм. ' : ''}
+      {time(note.createdAt)}
+    </Text>
+  );
+}
+
+export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile, onEditTranscript, maxW }: Pick<Props, 'note' | 't' | 'fontSize' | 'onJump' | 'onOpenPhoto' | 'onOpenFile' | 'onEditTranscript'> & { maxW: number }) {
+  const reply = useStore((s) => (note.replyTo ? s.notes[note.replyTo] : undefined));
+  const textStyle = { color: t.text, fontSize, lineHeight: Math.round(fontSize * 1.3) };
+  const timeSpacer = <Text style={{ fontSize: 11, color: 'transparent' }}>{'    ' + (note.editedAt ? 'изм. ' : '') + '00:00'}</Text>;
+
+  const quote = note.replyTo ? (
+    <Pressable onPress={() => reply && !reply.deletedAt && onJump(reply.id)} style={{ flexDirection: 'row', marginBottom: 4, borderRadius: 6, overflow: 'hidden', backgroundColor: t.dark ? 'rgba(126,200,247,0.12)' : 'rgba(79,174,78,0.10)' }}>
+      <View style={{ width: 3, backgroundColor: t.outAccent }} />
+      <View style={{ paddingHorizontal: 7, paddingVertical: 3, flexShrink: 1 }}>
+        <Text style={{ color: t.outAccent, fontWeight: '600', fontSize: 14 }}>Ответ</Text>
+        <Text numberOfLines={1} style={{ color: t.text, fontSize: 14 }}>
+          {reply && !reply.deletedAt ? notePreview(reply) : 'Заметка удалена'}
+        </Text>
+      </View>
+    </Pressable>
+  ) : null;
+
+  const pad = { paddingHorizontal: 10, paddingTop: 6, paddingBottom: 6 };
+  const timePos = { position: 'absolute' as const, right: 10, bottom: 5 };
+
+  switch (note.kind) {
+    case 'photo': {
+      const p = note.photo!;
+      const w = Math.min(maxW, 270);
+      const ratio = p.width && p.height ? p.height / p.width : 0.75;
+      const h = Math.max(120, Math.min(360, Math.round(w * ratio)));
+      return (
+        <View style={{ padding: note.text || note.replyTo ? 3 : 0, width: w + (note.text || note.replyTo ? 6 : 0) }}>
+          {quote ? <View style={{ paddingHorizontal: 7, paddingTop: 4 }}>{quote}</View> : null}
+          <Pressable onPress={() => onOpenPhoto(note)}>
+            <Image source={{ uri: resolveUri(p.uri) }} style={{ width: w, height: h, borderRadius: 15, backgroundColor: t.dark ? '#24384D' : '#8FB27A' }} resizeMode="cover" />
+          </Pressable>
+          {note.text ? (
+            <View style={{ paddingHorizontal: 7, paddingTop: 5, paddingBottom: 3 }}>
+              <RichText text={note.text} style={textStyle} linkColor={t.accent} />
+              <Text>{timeSpacer}</Text>
+              <View style={{ ...timePos, right: 7, bottom: 3 }}>
+                <TimeTag note={note} color={t.outSub} />
+              </View>
+            </View>
+          ) : (
+            <View style={{ position: 'absolute', right: 8, bottom: 8, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 9, paddingHorizontal: 6, paddingVertical: 1 }}>
+              <TimeTag note={note} color="#fff" />
+            </View>
+          )}
+        </View>
+      );
+    }
+    case 'file': {
+      const f = note.file!;
+      return (
+        <View style={pad}>
+          {quote}
+          <Pressable onPress={() => onOpenFile(note)} style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 4 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.outAccent, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+              <Icon name="file" size={20} color={t.dark ? '#1B3A57' : '#fff'} />
+            </View>
+            <View style={{ flexShrink: 1 }}>
+              <Text numberOfLines={2} style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{f.name}</Text>
+              <Text style={{ color: t.outSub, fontSize: 13, marginTop: 2 }}>{bytes(f.size)}</Text>
+            </View>
+          </Pressable>
+          {note.text ? <RichText text={note.text} style={{ ...textStyle, marginTop: 6 }} linkColor={t.accent} /> : null}
+          <Text>{timeSpacer}</Text>
+          <View style={timePos}>
+            <TimeTag note={note} color={t.outSub} />
+          </View>
+        </View>
+      );
+    }
+    case 'voice':
+      return (
+        <View style={[pad, { minWidth: 240 }]}>
+          {quote}
+          <VoiceContent note={note} t={t} accent={t.outAccent} sub={t.outSub} textColor={t.text} fontSize={fontSize} onEditTranscript={() => onEditTranscript(note)} />
+          <Text>{timeSpacer}</Text>
+          <View style={timePos}>
+            <TimeTag note={note} color={t.outSub} />
+          </View>
+        </View>
+      );
+    case 'list':
+      return (
+        <View style={[pad, { minWidth: 160 }]}>
+          {quote}
+          {note.text ? <Text style={{ ...textStyle, fontWeight: '600', marginBottom: 2 }}>{note.text}</Text> : null}
+          {(note.items ?? []).map((it) => (
+            <Pressable
+              key={it.id}
+              hitSlop={2}
+              onPress={() => {
+                haptic.select();
+                actions.toggleItem(note.id, it.id);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 3 }}
+            >
+              <Icon name={it.done ? 'squareCheck' : 'square'} size={fontSize + 3} color={it.done ? t.outAccent : t.sub} style={{ marginRight: 7, marginTop: 1 }} />
+              <Text style={{ ...textStyle, flexShrink: 1, opacity: it.done ? 0.5 : 1, textDecorationLine: it.done ? 'line-through' : 'none' }}>{it.text}</Text>
+            </Pressable>
+          ))}
+          <Text>{timeSpacer}</Text>
+          <View style={timePos}>
+            <TimeTag note={note} color={t.outSub} />
+          </View>
+        </View>
+      );
+    default:
+      return (
+        <View style={pad}>
+          {quote}
+          <Text style={textStyle}>
+            <RichText text={note.text} style={textStyle} linkColor={t.accent} />
+            {timeSpacer}
+          </Text>
+          <View style={timePos}>
+            <TimeTag note={note} color={t.outSub} />
+          </View>
+        </View>
+      );
+  }
+}
+
+function Bubble(props: Props) {
+  const { note, t, selecting, selected, highlighted, onPress, onLongPress, onReply, preview } = props;
+  const { width } = useWindowDimensions();
+  const maxW = Math.round(width * 0.8);
+  const x = useRef(new Animated.Value(0)).current;
+  const fired = useRef(false);
+  const cb = useRef({ onReply, note, selecting });
+  cb.current = { onReply, note, selecting };
+
+  // Свайп влево — ответить
+  const pan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => !cb.current.selecting && g.dx < -12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8,
+      onPanResponderGrant: () => {
+        fired.current = false;
+      },
+      onPanResponderMove: (_, g) => {
+        const v = Math.max(-90, Math.min(0, g.dx));
+        x.setValue(v);
+        if (v < -60 && !fired.current) {
+          fired.current = true;
+          haptic.light();
+        }
+        if (v > -60) fired.current = false;
+      },
+      onPanResponderRelease: () => {
+        if (fired.current) cb.current.onReply(cb.current.note);
+        Animated.spring(x, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
+      },
+      onPanResponderTerminate: () => Animated.spring(x, { toValue: 0, useNativeDriver: true }).start(),
+    }),
+  ).current;
+
+  const replyOpacity = x.interpolate({ inputRange: [-60, -20, 0], outputRange: [1, 0.2, 0], extrapolate: 'clamp' });
+  const isPhotoOnly = note.kind === 'photo' && !note.text && !note.replyTo;
+
+  const body = (
+    <View
+      style={{
+        maxWidth: maxW,
+        backgroundColor: isPhotoOnly ? 'transparent' : t.out,
+        borderRadius: 18,
+        borderBottomRightRadius: 6,
+        overflow: 'hidden',
+      }}
+    >
+      <BubbleBody {...props} maxW={maxW} />
+    </View>
+  );
+
+  if (preview) return body;
+
+  return (
+    <Pressable
+      onPress={() => onPress(note)}
+      onLongPress={() => {
+        haptic.medium();
+        onLongPress(note);
+      }}
+      delayLongPress={300}
+      style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: highlighted ? (t.dark ? 'rgba(62,136,247,0.25)' : 'rgba(51,144,236,0.18)') : selected ? 'rgba(51,144,236,0.12)' : 'transparent', flexDirection: 'row', alignItems: 'center' }}
+    >
+      {selecting ? (
+        <View style={{ width: 34 }}>
+          <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: selected ? 0 : 1.5, borderColor: '#fff', backgroundColor: selected ? t.accent : 'rgba(0,0,0,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+            {selected ? <Icon name="check" size={14} color="#fff" /> : null}
+          </View>
+        </View>
+      ) : null}
+      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+        <Animated.View style={{ position: 'absolute', right: -4, top: 0, bottom: 0, justifyContent: 'center', opacity: replyOpacity }}>
+          <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="reply" size={16} color="#fff" />
+          </View>
+        </Animated.View>
+        <Animated.View style={{ transform: [{ translateX: x }] }} {...pan.panHandlers}>
+          <View pointerEvents={selecting ? 'none' : 'auto'}>{body}</View>
+        </Animated.View>
+      </View>
+    </Pressable>
+  );
+}
+
+export default memo(Bubble);
