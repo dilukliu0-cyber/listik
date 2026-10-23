@@ -3,7 +3,7 @@ import { Animated, Image, PanResponder, Pressable, Text, View, useWindowDimensio
 import Reanimated, { FadeInUp, LinearTransition, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { resolveUri } from '../../files';
-import { bytes, time } from '../../format';
+import { bytes, emojiOnlyCount, time } from '../../format';
 import { haptic } from '../../haptics';
 import { actions, notePreview, useStore, type Note } from '../../store';
 import { isDarkColor, type Theme } from '../../theme';
@@ -34,6 +34,18 @@ type Props = {
 const enterNew = FadeInUp.springify().damping(20).stiffness(240).mass(0.8);
 const resize = LinearTransition.duration(220);
 
+/** 1–3 для заметки только из эмодзи (крупно, без пузыря), иначе 0 */
+export function bigEmojiCount(note: Note, on: boolean): number {
+  if (!on || note.kind !== 'text' || note.replyTo) return 0;
+  const n = emojiOnlyCount(note.text);
+  return n <= 3 ? n : 0;
+}
+
+export function useBigEmoji(note: Note): number {
+  const on = useStore((s) => s.settings.bigEmoji !== false);
+  return bigEmojiCount(note, on);
+}
+
 function TimeTag({ note, color }: { note: Note; color: string }) {
   return (
     <Text style={{ color, fontSize: 11 }}>
@@ -45,6 +57,7 @@ function TimeTag({ note, color }: { note: Note; color: string }) {
 
 export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile, onEditTranscript, maxW }: Pick<Props, 'note' | 't' | 'fontSize' | 'onJump' | 'onOpenPhoto' | 'onOpenFile' | 'onEditTranscript'> & { maxW: number }) {
   const reply = useStore((s) => (note.replyTo ? s.notes[note.replyTo] : undefined));
+  const bigEmoji = useBigEmoji(note);
   const textStyle = { color: t.outText, fontSize, lineHeight: Math.round(fontSize * 1.3) };
   const timeSpacer = <Text style={{ fontSize: 11, color: 'transparent' }}>{'    ' + (note.editedAt ? 'изм. ' : '') + '00:00'}</Text>;
 
@@ -73,7 +86,7 @@ export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile,
         <View style={{ padding: note.text || note.replyTo ? 3 : 0, width: w + (note.text || note.replyTo ? 6 : 0) }}>
           {quote ? <View style={{ paddingHorizontal: 7, paddingTop: 4 }}>{quote}</View> : null}
           <Pressable onPress={() => onOpenPhoto(note)}>
-            <Image source={{ uri: resolveUri(p.uri) }} style={{ width: w, height: h, borderRadius: 15, backgroundColor: t.dark ? '#24384D' : '#8FB27A' }} resizeMode="cover" />
+            <Image source={{ uri: resolveUri(p.uri) }} style={{ width: w, height: h, borderRadius: Math.max(4, t.radius - 3), backgroundColor: t.dark ? '#24384D' : '#8FB27A' }} resizeMode="cover" />
           </Pressable>
           {note.text ? (
             <View style={{ paddingHorizontal: 7, paddingTop: 5, paddingBottom: 3 }}>
@@ -150,6 +163,16 @@ export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile,
         </View>
       );
     default:
+      if (bigEmoji) {
+        return (
+          <View style={{ alignItems: 'flex-end', paddingTop: 2 }}>
+            <Text style={{ fontSize: bigEmoji === 1 ? 64 : bigEmoji === 2 ? 52 : 42, lineHeight: bigEmoji === 1 ? 76 : bigEmoji === 2 ? 62 : 52 }}>{note.text.trim()}</Text>
+            <View style={{ backgroundColor: t.datePill, borderRadius: 9, paddingHorizontal: 6, paddingVertical: 1, marginTop: 2 }}>
+              <TimeTag note={note} color="#fff" />
+            </View>
+          </View>
+        );
+      }
       return (
         <View style={pad}>
           {quote}
@@ -222,15 +245,15 @@ function Bubble(props: Props) {
 
   const replyOpacity = x.interpolate({ inputRange: [-60, -20, 0], outputRange: [1, 0.2, 0], extrapolate: 'clamp' });
   const replyScale = x.interpolate({ inputRange: [-90, -60, -20, 0], outputRange: [1.15, 1, 0.5, 0.5], extrapolate: 'clamp' });
-  const isPhotoOnly = note.kind === 'photo' && !note.text && !note.replyTo;
+  const isPhotoOnly = (note.kind === 'photo' && !note.text && !note.replyTo) || useBigEmoji(note) > 0;
 
   const body = (
     <View
       style={{
         maxWidth: maxW,
         backgroundColor: isPhotoOnly ? 'transparent' : t.out,
-        borderRadius: 18,
-        borderBottomRightRadius: 6,
+        borderRadius: t.radius,
+        borderBottomRightRadius: Math.min(6, t.radius),
         overflow: 'hidden',
       }}
     >

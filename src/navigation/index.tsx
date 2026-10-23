@@ -105,7 +105,7 @@ export default function Navigation() {
         <Stack.Screen name="PhotoViewer" component={S.PhotoViewer} options={{ presentation: 'transparentModal', animation: 'fade', gestureEnabled: false }} />
         <Stack.Screen name="Archive" component={S.Archive} options={{ ...sub, headerShown: true, title: 'Архив', headerStyle: { backgroundColor: t.bg } }} />
         <Stack.Screen name="Deleted" component={S.Deleted} options={{ ...sub, headerShown: true, title: 'Недавно удалённые' }} />
-        <Stack.Screen name="Appearance" component={S.Appearance} options={{ ...sub, headerShown: true, title: 'Оформление' }} />
+        <Stack.Screen name="Appearance" component={S.Appearance} options={{ ...sub, headerShown: true, title: 'Оформление', gestureEnabled: false }} />
         <Stack.Screen name="Wallpaper" component={S.Wallpaper} options={{ ...sub, headerShown: true, title: 'Обои' }} />
         <Stack.Screen name="TextSize" component={S.TextSize} options={{ ...sub, headerShown: true, title: 'Размер текста', gestureEnabled: false }} />
         <Stack.Screen name="Transcription" component={S.Transcription} options={{ ...sub, headerShown: true, title: 'Расшифровка' }} />

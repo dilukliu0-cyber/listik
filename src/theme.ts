@@ -4,8 +4,13 @@ import { useMemo } from 'react';
 
 import { useStore, type Wallpaper } from './store';
 
+export type ThemeKind = 'classic' | 'day' | 'tinted' | 'night';
+
 export type Theme = {
+  kind: ThemeKind;
   dark: boolean;
+  radius: number; // скругление пузырей
+  tintByWallpaper: boolean; // палитра чата считается от обоев (Классика / Тёмно-синяя без своего акцента)
   bg: string;
   text: string;
   sub: string;
@@ -35,7 +40,10 @@ export type Theme = {
 };
 
 export const light: Theme = {
+  kind: 'classic',
   dark: false,
+  radius: 18,
+  tintByWallpaper: true,
   bg: '#FFFFFF',
   text: '#000000',
   sub: '#8E8E93',
@@ -64,7 +72,10 @@ export const light: Theme = {
 };
 
 export const dark: Theme = {
+  kind: 'tinted',
   dark: true,
+  radius: 18,
+  tintByWallpaper: true,
   bg: '#000000',
   text: '#FFFFFF',
   sub: '#8D8E93',
@@ -92,11 +103,79 @@ export const dark: Theme = {
   datePill: 'rgba(0,0,0,0.35)',
 };
 
+// Цвета акцента, как в «Оформлении» Telegram
+export const ACCENTS = ['#3390EC', '#2AABEE', '#4FAE4E', '#8E6CEF', '#E05BA0', '#E2574C', '#F2A33A', '#8E8E93'];
+
+export const THEME_NAMES: Record<ThemeKind, string> = { classic: 'Классика', day: 'День', tinted: 'Тёмно-синяя', night: 'Ночь' };
+
+const themeCache = new Map<string, Theme>();
+
+/** Тема по виду, акценту и скруглению пузырей */
+export function makeTheme(kind: ThemeKind, accent?: string, radius = 18): Theme {
+  const key = `${kind}|${accent ?? ''}|${radius}`;
+  const hit = themeCache.get(key);
+  if (hit) return hit;
+  const isDark = kind === 'tinted' || kind === 'night';
+  const A = accent ?? (isDark ? dark.accent : light.accent);
+  let t: Theme;
+  if (kind === 'classic') {
+    t = { ...light, accent: A, link: A, tintByWallpaper: !accent };
+  } else if (kind === 'day') {
+    // «День»: пузыри цвета акцента с белым текстом
+    t = {
+      ...light,
+      kind,
+      accent: A,
+      out: A,
+      outText: readable(A, '#FFFFFF'),
+      outAccent: '#FFFFFF',
+      outSub: mix(A, '#FFFFFF', 0.62),
+      quoteLine: mix(A, '#FFFFFF', 0.45),
+      link: '#FFFFFF',
+      tintByWallpaper: false,
+    };
+    if (t.outText !== '#FFFFFF') t = { ...t, outAccent: mix(A, '#000000', 0.55), outSub: mix(A, '#000000', 0.45), link: mix(A, '#000000', 0.55) };
+  } else if (kind === 'night') {
+    // «Ночь»: чёрная, пузыри — тёмный оттенок акцента
+    const out = mix(A, '#000000', 0.45);
+    t = {
+      ...dark,
+      kind,
+      bg: '#000000',
+      bar: '#121212',
+      chatBar: '#1C1C1D',
+      chatSub: '#8D8E93',
+      field: '#2C2C2E',
+      menu: '#2C2C2E',
+      accent: A,
+      out,
+      outText: '#FFFFFF',
+      outAccent: mix(A, '#FFFFFF', 0.45),
+      outSub: mix(out, '#FFFFFF', 0.55),
+      quoteLine: mix(out, '#FFFFFF', 0.3),
+      link: mix(A, '#FFFFFF', 0.45),
+      tintByWallpaper: false,
+    };
+  } else if (accent) {
+    const out = mix(A, '#17212B', 0.55);
+    t = { ...dark, accent: A, out, outAccent: mix(A, '#FFFFFF', 0.4), outSub: mix(out, '#FFFFFF', 0.5), quoteLine: mix(out, '#FFFFFF', 0.25), link: mix(A, '#FFFFFF', 0.4), tintByWallpaper: false };
+  } else {
+    t = dark;
+  }
+  if (radius !== t.radius) t = { ...t, radius };
+  themeCache.set(key, t);
+  return t;
+}
+
 export function useTheme(): Theme {
   const system = useColorScheme();
   const mode = useStore((s) => s.settings.theme);
+  const lightKind = useStore((s) => s.settings.lightTheme ?? 'classic');
+  const darkKind = useStore((s) => s.settings.darkTheme ?? 'tinted');
+  const accent = useStore((s) => s.settings.accent);
+  const radius = useStore((s) => s.settings.bubbleRadius ?? 18);
   const isDark = mode === 'auto' ? system === 'dark' : mode === 'dark';
-  return isDark ? dark : light;
+  return makeTheme(isDark ? darkKind : lightKind, accent, radius);
 }
 
 // 8 цветов чата (макет 04)
@@ -208,21 +287,20 @@ function wallpaperBaseColor(w: Wallpaper, dark: boolean): string {
   return dark ? p.dark : p.light;
 }
 
-const cache = new Map<string, Theme>();
+const cache = new WeakMap<Theme, Map<string, Theme>>();
 
 /**
  * Палитра экрана чата под обои: пузыри, их текст, акцент (кнопки, ссылки, →A, закреп, галочки, микрофон),
  * шапка и поле ввода с оттенком обоев, плашки дат. Текст пузырей проверяется на контраст.
  */
 export function chatTheme(base: Theme, w: Wallpaper): Theme {
-  const key = (base.dark ? 'd' : 'l') + JSON.stringify(w);
-  const hit = cache.get(key);
+  // «День», «Ночь» и свой акцент задают цвета сами; классические обои Telegram — родная палитра
+  if (!base.tintByWallpaper || (w.kind === 'pattern' && w.index === 0)) return base;
+  let byBase = cache.get(base);
+  if (!byBase) cache.set(base, (byBase = new Map()));
+  const key = JSON.stringify(w);
+  const hit = byBase.get(key);
   if (hit) return hit;
-  // классические обои Telegram — родная палитра без изменений
-  if (w.kind === 'pattern' && w.index === 0) {
-    cache.set(key, base);
-    return base;
-  }
   const seed = toHsl(seedColor(w));
   const gray = seed.s < 12;
   const h = seed.h;
@@ -270,7 +348,7 @@ export function chatTheme(base: Theme, w: Wallpaper): Theme {
     }
   }
   const theme = { ...base, ...p };
-  cache.set(key, theme);
+  byBase.set(key, theme);
   return theme;
 }
 

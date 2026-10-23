@@ -2,13 +2,13 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
 import { useCallback, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, useColorScheme } from 'react-native';
 
 import { bytes } from '../format';
 import type { RootStack } from '../navigation/types';
 import { storageStats } from '../services/storageStats';
 import { actions, useStore } from '../store';
-import { useTheme } from '../theme';
+import { THEME_NAMES, useTheme } from '../theme';
 import { Group, Row, TabHeader, ToggleRow } from '../ui/kit';
 
 export const THEME_LABEL = { auto: 'Авто', light: 'Светлая', dark: 'Тёмная' } as const;
@@ -26,6 +26,9 @@ export default function SettingsScreen() {
     return chats + notes;
   });
   const [total, setTotal] = useState<number | null>(null);
+  const system = useColorScheme();
+  const isDark = settings.theme === 'auto' ? system === 'dark' : settings.theme === 'dark';
+  const themeName = THEME_NAMES[isDark ? (settings.darkTheme ?? 'tinted') : (settings.lightTheme ?? 'classic')];
 
   useFocusEffect(
     useCallback(() => {
@@ -42,7 +45,7 @@ export default function SettingsScreen() {
       <TabHeader title="Настройки" />
       <ScrollView contentContainerStyle={{ paddingTop: 12, paddingBottom: 30 }}>
         <Group>
-          <Row icon="palette" iconBg="#3390EC" title="Оформление" value={THEME_LABEL[settings.theme]} chevron onPress={() => nav.navigate('Appearance')} />
+          <Row icon="palette" iconBg="#3390EC" title="Оформление" value={themeName} chevron onPress={() => nav.navigate('Appearance')} />
           <Row icon="photoFill" iconBg="#4FAE4E" title="Обои чатов" chevron onPress={() => nav.navigate('Wallpaper')} />
           <Row icon="textSize" iconBg="#F2A33A" title="Размер текста" value={String(settings.fontSize)} chevron last onPress={() => nav.navigate('TextSize')} />
         </Group>

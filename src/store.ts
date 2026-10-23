@@ -61,6 +61,11 @@ export type Note = {
 
 export type Settings = {
   theme: 'auto' | 'light' | 'dark';
+  lightTheme?: 'classic' | 'day'; // какая тема днём
+  darkTheme?: 'tinted' | 'night'; // какая тема ночью
+  accent?: string; // свой цвет акцента; нет — под обои
+  bubbleRadius?: number; // скругление пузырей, 6…18
+  bigEmoji?: boolean; // заметка из 1–3 эмодзи — крупно, без пузыря
   wallpaper: Wallpaper;
   fontSize: number;
   haptics: boolean;

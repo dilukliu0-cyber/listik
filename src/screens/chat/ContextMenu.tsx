@@ -4,11 +4,11 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import Animated, { interpolate, useAnimatedStyle } from 'react-native-reanimated';
 
 import { haptic } from '../../haptics';
-import type { Note } from '../../store';
+import { useStore, type Note } from '../../store';
 import type { Theme } from '../../theme';
 import Icon, { type IconName } from '../../ui/Icon';
 import { usePresence } from '../../ui/motion';
-import { BubbleBody } from './Bubble';
+import { BubbleBody, bigEmojiCount } from './Bubble';
 
 export type MenuItem = { label: string; icon: IconName; onPress: () => void; destructive?: boolean };
 
@@ -19,6 +19,7 @@ const noop = () => {};
 export default function ContextMenu({ t, note, items, fontSize, onClose }: Props) {
   const { width, height } = useWindowDimensions();
   const { mounted, progress, onDismiss, afterHidden } = usePresence(!!note);
+  const bigOn = useStore((s) => s.settings.bigEmoji !== false);
   // пока меню уезжает, показываем последнюю заметку и пункты
   const last = useRef<{ note: Note; items: MenuItem[] } | null>(null);
   if (note) last.current = { note, items };
@@ -35,7 +36,8 @@ export default function ContextMenu({ t, note, items, fontSize, onClose }: Props
   if (!shown) return null;
   const n = shown.note;
   const maxW = Math.round(width * 0.8);
-  const photoOnly = n.kind === 'photo' && !n.text && !n.replyTo;
+  const big = bigEmojiCount(n, bigOn);
+  const photoOnly = (n.kind === 'photo' && !n.text && !n.replyTo) || big > 0;
 
   // действие выполняем, когда меню полностью закрылось: так не конфликтуют окна и клавиатура
   const pick = (it: MenuItem) => {
@@ -53,7 +55,7 @@ export default function ContextMenu({ t, note, items, fontSize, onClose }: Props
       </Animated.View>
       <View pointerEvents="box-none" style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingHorizontal: 10 }}>
         <ScrollView style={{ maxHeight: height * 0.45, flexGrow: 0, overflow: 'visible' }} contentContainerStyle={{ alignItems: 'flex-end' }} pointerEvents="none">
-          <Animated.View style={[{ maxWidth: maxW, backgroundColor: photoOnly ? 'transparent' : t.out, borderRadius: 18, borderBottomRightRadius: 6, overflow: 'hidden' }, bubble]}>
+          <Animated.View style={[{ maxWidth: maxW, backgroundColor: photoOnly ? 'transparent' : t.out, borderRadius: t.radius, borderBottomRightRadius: Math.min(6, t.radius), overflow: 'hidden' }, bubble]}>
             <BubbleBody note={n} t={t} fontSize={fontSize} maxW={maxW} onJump={noop} onOpenPhoto={noop} onOpenFile={noop} onEditTranscript={noop} />
           </Animated.View>
         </ScrollView>

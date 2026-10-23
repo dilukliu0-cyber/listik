@@ -93,3 +93,21 @@ export function plural(n: number, one: string, few: string, many: string) {
 }
 
 export const notesCount = (n: number) => `${n} ${plural(n, 'заметка', 'заметки', 'заметок')}`;
+
+// Заметка только из эмодзи (1–3 штуки) показывается крупно, как в Telegram
+let EMOJI_RE: RegExp | null = null;
+try {
+  EMOJI_RE = new RegExp('\\p{Extended_Pictographic}(?:\\uFE0F|\\p{Emoji_Modifier}|\\u200D\\p{Extended_Pictographic}\\uFE0F?)*|\\p{Regional_Indicator}{2}', 'gu');
+} catch {
+  EMOJI_RE = null; // движок без \p{…} — без крупных эмодзи
+}
+
+/** Сколько эмодзи в тексте, если в нём нет ничего, кроме эмодзи (иначе 0) */
+export function emojiOnlyCount(text: string): number {
+  const s = text.trim();
+  if (!EMOJI_RE || !s || s.length > 40) return 0;
+  const found = s.match(EMOJI_RE);
+  if (!found) return 0;
+  if (s.replace(EMOJI_RE, '').replace(/\s/g, '') !== '') return 0;
+  return found.length;
+}

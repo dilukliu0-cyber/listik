@@ -67,6 +67,9 @@ const MAP = {
   warning: ['exclamationmark.triangle.fill', 'warning'],
   restore: ['arrow.uturn.backward', 'arrow-undo'],
   arrowDown: ['arrow.down', 'arrow-down'],
+  moon: ['moon.fill', 'moon'],
+  corners: ['app', 'square-outline'],
+  emoji: ['face.smiling.inverse', 'happy'],
   // значки чатов
   bulb: ['lightbulb.fill', 'bulb'],
   cart: ['cart.fill', 'cart'],
