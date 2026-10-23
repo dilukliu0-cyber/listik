@@ -12,7 +12,7 @@ import { haptic } from '../../haptics';
 import type { ScreenProps } from '../../navigation/types';
 import { toast } from '../../runtime';
 import { stopPlayback } from '../../services/player';
-import { actions, chatNotes, notePreview, noteSearchText, useStore, type Note } from '../../store';
+import { actions, chatNotes, notePreview, noteSearchText, store, useStore, type Note } from '../../store';
 import { useChatTheme } from '../../theme';
 import Avatar from '../../ui/Avatar';
 import EditTextModal from '../../ui/EditTextModal';
@@ -42,7 +42,11 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   const fontSize = useStore((s) => s.settings.fontSize);
 
   const listRef = useRef<FlatList<Item>>(null);
-  const [text, setText] = useState('');
+  // черновик: восстанавливается при открытии чата и сохраняется, пока пишешь
+  const [text, setText] = useState(() => store.get().chats[chatId]?.draft?.text ?? '');
+  const textRef = useRef(text);
+  textRef.current = text;
+  const beforeEdit = useRef<string | null>(null); // текст поля до начала правки заметки
   const [replyTo, setReplyTo] = useState<Note | null>(null);
   const [editing, setEditing] = useState<Note | null>(null);
   const [menuNote, setMenuNote] = useState<Note | null>(null);
@@ -72,6 +76,19 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   }, []);
 
   useEffect(() => () => stopPlayback(), []);
+
+  useEffect(() => {
+    if (editing) return; // текст правки — не черновик
+    const id = setTimeout(() => actions.setDraft(chatId, text), 500);
+    return () => clearTimeout(id);
+  }, [text, editing, chatId]);
+  useEffect(
+    () => () => {
+      if (beforeEdit.current === null) actions.setDraft(chatId, textRef.current);
+      else actions.setDraft(chatId, beforeEdit.current);
+    },
+    [chatId],
+  );
 
   // Поле ввода едет вместе с клавиатурой кадр в кадр (UI-поток), без KeyboardAvoidingView-рывков.
   // Нижний отступ под «чёлку» внутри панели ввода уже есть — его вычитаем, чтобы не было щели.
@@ -215,6 +232,7 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
           if (n.kind === 'list') navigation.navigate('ListEditor', { chatId, noteId: n.id });
           else if (n.kind === 'voice') setTranscriptNote(n);
           else {
+            if (beforeEdit.current === null) beforeEdit.current = text;
             setReplyTo(null);
             setEditing(n);
             setText(n.text);
@@ -248,7 +266,11 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
         onPress: () => {
           removeNotes([n.id], () => {
             if (replyTo?.id === n.id) setReplyTo(null);
-            if (editing?.id === n.id) setEditing(null);
+            if (editing?.id === n.id) {
+              setText(beforeEdit.current ?? '');
+              beforeEdit.current = null;
+              setEditing(null);
+            }
           });
         },
       },
@@ -470,6 +492,11 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
             setText={setText}
             onCancelContext={() => {
               setReplyTo(null);
+              if (editing) {
+                // правка закончена — в поле возвращается то, что было написано до неё
+                setText(beforeEdit.current ?? '');
+                beforeEdit.current = null;
+              }
               setEditing(null);
             }}
             onAttach={openAttach}

@@ -52,7 +52,16 @@ function ChatRow({ chat, onPress, onLongPress, selecting, selected }: Props) {
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
             <Text numberOfLines={1} style={{ flex: 1, color: t.sub, fontSize: 15 }}>
-              {last ? notePreview(last) : 'Нет заметок'}
+              {chat.draft ? (
+                <>
+                  <Text style={{ color: t.danger }}>Черновик: </Text>
+                  {chat.draft.text.replace(/\s+/g, ' ')}
+                </>
+              ) : last ? (
+                notePreview(last)
+              ) : (
+                'Нет заметок'
+              )}
             </Text>
             {open > 0 ? (
               <View style={{ backgroundColor: t.accent, borderRadius: 10, minWidth: 20, height: 20, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center', marginLeft: 6 }}>

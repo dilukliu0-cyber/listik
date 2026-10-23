@@ -1,7 +1,7 @@
 import { setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, Platform, Pressable, Text, TextInput, View } from 'react-native';
-import Reanimated, { FadeIn, FadeInDown, FadeOut, SlideInRight, ZoomIn, ZoomOut } from 'react-native-reanimated';
+import Reanimated, { FadeIn, FadeInDown, FadeOut, SlideInRight, ZoomIn, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { duration } from '../../format';
@@ -14,7 +14,7 @@ import { transcribe } from '../../services/transcriber';
 import { actions, notePreview, store, type Note } from '../../store';
 import type { Theme } from '../../theme';
 import Icon from '../../ui/Icon';
-import { PressScale, useBgTransition } from '../../ui/motion';
+import { EASE_OUT, PressScale, useBgTransition } from '../../ui/motion';
 import { REC_OPTIONS, compressWave, level } from './Recorder';
 
 type Props = {
@@ -33,6 +33,8 @@ type Props = {
 type RecState = 'idle' | 'recording' | 'locked';
 
 const HOLD_MS = 220;
+const MIN_H = 36; // высота поля в одну строку, как в Telegram
+const MAX_H = 150; // ~6 строк, дальше прокрутка
 
 export default function Composer({ t, chatId, replyTo, editing, onCancelContext, onAttach, onFocus, onSent, text, setText }: Props) {
   const insets = useSafeAreaInsets();
@@ -51,6 +53,13 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
   const bob = useRef(new Animated.Value(0)).current;
   const inputRef = useRef<TextInput>(null);
   const barBg = useBgTransition(t.chatBar);
+  const fieldH = useSharedValue(MIN_H);
+  const fieldTarget = useRef(MIN_H);
+  const [scrollable, setScrollable] = useState(false);
+  const fieldStyle = useAnimatedStyle(() => ({ height: fieldH.value }));
+  const sendP = useSharedValue(0);
+  const sendStyle = useAnimatedStyle(() => ({ opacity: sendP.value, transform: [{ scale: 0.4 + 0.6 * sendP.value }] }));
+  const micStyle = useAnimatedStyle(() => ({ opacity: 1 - sendP.value, transform: [{ scale: 1 - 0.6 * sendP.value }] }));
 
   recRef.current = rec;
 
@@ -241,7 +250,6 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
       if (editing.kind === 'text' && !body) return;
       actions.updateNote(editing.id, { text: body, editedAt: Date.now() });
       haptic.light();
-      setText('');
       onCancelContext();
       return;
     }
@@ -255,6 +263,10 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
   const showSend = text.trim().length > 0 || !!editing;
   const ctx = editing ?? replyTo;
 
+  useEffect(() => {
+    sendP.value = withSpring(showSend ? 1 : 0, { damping: 16, stiffness: 320, mass: 0.7 });
+  }, [showSend, sendP]);
+
   return (
     <Reanimated.View style={[barBg, { paddingBottom: Math.max(insets.bottom, 8), borderTopWidth: 0.5, borderTopColor: t.dark ? '#0B121A' : '#DDDDDD' }]}>
       {ctx ? (
@@ -267,10 +279,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
           </View>
           <Pressable
             hitSlop={10}
-            onPress={() => {
-              if (editing) setText('');
-              onCancelContext();
-            }}
+            onPress={onCancelContext}
           >
             <Icon name="close" size={18} color={t.sub} />
           </Pressable>
@@ -280,45 +289,66 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
       {/* Поле ввода не размонтируется во время записи — клавиатура остаётся открытой, как в Telegram */}
       <View>
         <View pointerEvents={rec === 'idle' ? 'auto' : 'none'} style={{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 8, paddingTop: 8, opacity: rec === 'idle' ? 1 : 0 }}>
-          <PressScale onPress={onAttach} feedback="select" scaleTo={0.85} accessibilityLabel="Прикрепить" hitSlop={6} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+          <PressScale onPress={onAttach} feedback="select" scaleTo={0.85} accessibilityLabel="Прикрепить" hitSlop={6} style={{ width: 38, height: MIN_H, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="paperclip" size={24} color={t.sub} />
           </PressScale>
-          <TextInput
-            ref={inputRef}
-            value={text}
-            onChangeText={setText}
-            onFocus={onFocus}
-            placeholder="Заметка"
-            placeholderTextColor={t.sub}
-            multiline
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              maxHeight: 140,
-              minHeight: 38,
-              marginHorizontal: 6,
-              backgroundColor: t.field,
-              borderRadius: 19,
-              borderWidth: 0.5,
-              borderColor: t.dark ? '#0B121A' : '#DDDDDD',
-              paddingHorizontal: 14,
-              paddingTop: 9,
-              paddingBottom: 9,
-              color: t.text,
-              fontSize: 17,
-            }}
-          />
-          {showSend ? (
-            <Reanimated.View entering={ZoomIn.springify().damping(14).stiffness(300)} exiting={ZoomOut.duration(120)}>
-              <PressScale onPress={send} feedback="none" scaleTo={0.85} accessibilityLabel="Отправить" style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
-                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name={editing ? 'check' : 'send'} size={18} color="#fff" />
-                </View>
-              </PressScale>
-            </Reanimated.View>
-          ) : (
-            <View style={{ width: 38, height: 38 }} />
-          )}
+          {/* Поле растёт по строкам плавно, как в Telegram; после MAX_H — прокрутка внутри */}
+          <Reanimated.View
+            style={[
+              {
+                flex: 1,
+                marginHorizontal: 6,
+                backgroundColor: t.field,
+                borderRadius: MIN_H / 2,
+                borderWidth: 0.5,
+                borderColor: t.dark ? '#0B121A' : '#D9D9D9',
+                overflow: 'hidden',
+              },
+              fieldStyle,
+            ]}
+          >
+            <TextInput
+              ref={inputRef}
+              value={text}
+              onChangeText={setText}
+              onFocus={onFocus}
+              onContentSizeChange={(e) => {
+                const h = Math.ceil(e.nativeEvent.contentSize.height);
+                const target = Math.max(MIN_H, Math.min(MAX_H, h));
+                if (target === fieldTarget.current) return;
+                fieldTarget.current = target;
+                fieldH.value = withTiming(target, { duration: 160, easing: EASE_OUT });
+                setScrollable(h > MAX_H);
+              }}
+              placeholder="Заметка"
+              placeholderTextColor={t.sub}
+              multiline
+              scrollEnabled={scrollable}
+              autoCapitalize="sentences"
+              autoCorrect
+              spellCheck
+              keyboardAppearance={t.dark ? 'dark' : 'light'}
+              selectionColor={t.accent}
+              cursorColor={t.accent}
+              textAlignVertical="top"
+              style={{
+                flex: 1,
+                paddingHorizontal: 13,
+                paddingTop: 8,
+                paddingBottom: 8,
+                color: t.text,
+                fontSize: 17,
+              }}
+            />
+          </Reanimated.View>
+          {/* «Отправить» появляется на месте микрофона: один уменьшается и гаснет, другой вырастает */}
+          <Reanimated.View pointerEvents={showSend ? 'auto' : 'none'} style={[{ width: 38, height: MIN_H, alignItems: 'center', justifyContent: 'center' }, sendStyle]}>
+            <PressScale onPress={send} feedback="none" scaleTo={0.85} accessibilityLabel="Отправить" style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={editing ? 'check' : 'send'} size={18} color="#fff" />
+              </View>
+            </PressScale>
+          </Reanimated.View>
         </View>
         {rec !== 'idle' ? (
         <Reanimated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(120)} style={[barBg, { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 8 }]}>
@@ -344,8 +374,8 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
       </View>
 
       {/* Кнопка микрофона: держать — запись, влево — отмена, вверх — замок */}
-      {!showSend || rec !== 'idle' ? (
-        <View pointerEvents="box-none" style={{ position: 'absolute', right: rec === 'idle' ? 8 : -6, bottom: Math.max(insets.bottom, 8) + (rec === 'idle' ? 0 : -6) }}>
+      {rec !== 'idle' || !editing ? (
+        <Reanimated.View pointerEvents={showSend && rec === 'idle' ? 'none' : 'box-none'} style={[{ position: 'absolute', right: rec === 'idle' ? 8 : -6, bottom: Math.max(insets.bottom, 8) + (rec === 'idle' ? (MIN_H - 38) / 2 : -6) }, rec === 'idle' ? micStyle : null]}>
           {rec === 'recording' ? (
             <Reanimated.View entering={FadeInDown.springify().damping(14).stiffness(220)} exiting={FadeOut.duration(120)} style={{ position: 'absolute', bottom: 92, left: 15 }}>
               <Animated.View style={{ width: 44, height: 84, borderRadius: 22, backgroundColor: t.field, borderWidth: 0.5, borderColor: t.line, alignItems: 'center', justifyContent: 'space-around', paddingVertical: 8, transform: [{ translateY: Animated.multiply(dragY, 0.4) }] }}>
@@ -380,7 +410,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
               <Icon name={rec === 'idle' ? 'mic' : 'micFill'} size={rec === 'idle' ? 25 : 32} color={rec === 'idle' ? t.sub : '#fff'} />
             </Animated.View>
           )}
-        </View>
+        </Reanimated.View>
       ) : null}
     </Reanimated.View>
   );

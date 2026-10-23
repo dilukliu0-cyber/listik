@@ -24,6 +24,7 @@ export type Chat = {
   archived?: boolean;
   deletedAt?: number;
   wallpaper?: Wallpaper;
+  draft?: { text: string; at: number }; // недописанная заметка, как черновик в Telegram
 };
 
 export type ListItem = { id: string; text: string; done: boolean };
@@ -190,7 +191,8 @@ export function chatNotes(s: State, chatId: string): Note[] {
 
 export function lastActivity(s: State, chat: Chat): number {
   const list = chatNotes(s, chat.id);
-  return list.length ? list[list.length - 1].createdAt : chat.createdAt;
+  const last = list.length ? list[list.length - 1].createdAt : chat.createdAt;
+  return chat.draft ? Math.max(last, chat.draft.at) : last;
 }
 
 export function openItems(s: State, chatId: string): number {
@@ -233,6 +235,13 @@ export const actions = {
   },
   restoreChat(id: string) {
     patchChat(id, { deletedAt: undefined });
+  },
+  /** Черновик чата; пустой текст — убрать */
+  setDraft(id: string, text: string) {
+    const cur = store.get().chats[id]?.draft;
+    const clean = text.trim() ? text : '';
+    if ((cur?.text ?? '') === clean) return;
+    patchChat(id, { draft: clean ? { text: clean, at: Date.now() } : undefined });
   },
   clearChat(id: string) {
     const now = Date.now();
