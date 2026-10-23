@@ -1,6 +1,7 @@
 // Панель ввода как в Telegram iOS: скрепка — поле, растущее по строкам, — микрофон/«Отправить».
 // Над полем — плашка ответа/правки и, при выделении текста, «Форматирование».
 // Во время записи голосового поле не размонтируется — клавиатура остаётся открытой.
+import { useNavigation } from '@react-navigation/native';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, Text, TextInput, View, type NativeSyntheticEvent, type TextInputSelectionChangeEventData } from 'react-native';
 import Reanimated, { FadeIn, FadeInDown, FadeOut, SlideInRight, ZoomIn, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -42,6 +43,12 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
   const barBg = useBgTransition(t.chatBar);
   const voice = useVoice({ chatId, replyToId: replyTo?.id, onSent });
   const { rec } = voice;
+  const navigation = useNavigation();
+
+  // пока идёт запись, свайп «назад» выключен — он не должен отбирать палец у микрофона
+  useEffect(() => {
+    navigation.setOptions({ gestureEnabled: rec === 'idle' });
+  }, [rec, navigation]);
 
   // ---- поле: плавный рост по строкам ----
   const fieldH = useSharedValue(MIN_H);
@@ -182,9 +189,12 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
             <Text style={{ color: t.text, fontSize: 16, fontVariant: ['tabular-nums'], width: 50 }}>{duration(voice.elapsed)}</Text>
             {rec === 'recording' ? (
               <Reanimated.View entering={SlideInRight.springify().damping(18)} style={{ flex: 1 }}>
+                {/* подсказка ещё и кнопка: если касание потерялось, тап по ней отменяет запись */}
+                <Pressable onPress={() => voice.finish(false)} hitSlop={10} accessibilityLabel="Отменить запись">
                 <Animated.Text style={{ textAlign: 'center', color: t.sub, fontSize: 15, opacity: voice.dragX.interpolate({ inputRange: [-120, -40, 0], outputRange: [0.2, 0.8, 1], extrapolate: 'clamp' }), transform: [{ translateX: Animated.add(Animated.multiply(voice.dragX, 0.5), voice.nudge) }] }}>
                   ‹ Влево — отмена
                 </Animated.Text>
+                </Pressable>
               </Reanimated.View>
             ) : (
               <Reanimated.View entering={FadeInDown.duration(200)} style={{ flex: 1 }}>

@@ -1,5 +1,6 @@
-// Запись голосового как в Telegram: держать — запись, отпустил — отправилось,
-// влево — отмена, вверх на замок — запись без пальца. Короткий тап — подсказка.
+// Запись голосового как в Telegram: коснулся микрофона — запись сразу пошла и кнопка выросла;
+// отпустил — отправилось; влево — отмена; вверх на замок — запись идёт без пальца.
+// Короткий тап — подсказка «Удерживайте, чтобы записать», ничего не отправляется.
 import { setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, Platform } from 'react-native';
@@ -15,19 +16,31 @@ import { REC_OPTIONS, compressWave, level } from '../Recorder';
 
 export type RecState = 'idle' | 'recording' | 'locked';
 
-const HOLD_MS = 220; // короче — это тап, а не удержание
+const TAP_MS = 400; // отпустили быстрее — это тап
 const CANCEL_DX = -120;
 const LOCK_DY = -80;
 
 export function useVoice({ chatId, replyToId, onSent }: { chatId: string; replyToId?: string; onSent: () => void }) {
   const recorder = useAudioRecorder(REC_OPTIONS);
   const recState = useAudioRecorderState(recorder, 100);
-  const [rec, setRec] = useState<RecState>('idle');
+  const [rec, setRecView] = useState<RecState>('idle');
   const [elapsed, setElapsed] = useState(0);
   const samples = useRef<number[]>([]);
-  const startedAt = useRef(0);
-  const recRef = useRef<RecState>('idle');
-  recRef.current = rec;
+  const startedAt = useRef(0); // когда микрофон реально начал писать (0 — ещё не начал)
+
+  // Состояние храним в ref и меняем синхронно: жест читает его сразу, не дожидаясь перерисовки.
+  // Раньше отпускание пальца в момент старта терялось, и запись «висела» без кнопок.
+  const state = useRef<RecState>('idle');
+  const setRec = (s: RecState) => {
+    state.current = s;
+    setRecView(s);
+  };
+
+  const held = useRef(false); // палец сейчас на кнопке
+  const pressedAt = useRef(0);
+  const starting = useRef(false); // микрофон ещё включается
+  const pending = useRef<'send' | 'discard' | null>(null); // что сделать, когда включится
+  const micOk = useRef(false); // доступ к микрофону проверяем заранее, чтобы не терять время
 
   const dragX = useRef(new Animated.Value(0)).current;
   const dragY = useRef(new Animated.Value(0)).current;
@@ -36,6 +49,10 @@ export function useVoice({ chatId, replyToId, onSent }: { chatId: string; replyT
   const nudge = useRef(new Animated.Value(0)).current;
   const bob = useRef(new Animated.Value(0)).current;
 
+  useEffect(() => {
+    if (Platform.OS !== 'web') hasPermission('mic').then((ok) => (micOk.current = ok)).catch(() => {});
+  }, []);
+
   // уровень громкости → волна
   useEffect(() => {
     if (rec !== 'idle' && recState.isRecording) samples.current.push(level(recState.metering));
@@ -43,7 +60,7 @@ export function useVoice({ chatId, replyToId, onSent }: { chatId: string; replyT
 
   useEffect(() => {
     if (rec === 'idle') return;
-    const id = setInterval(() => setElapsed((Date.now() - startedAt.current) / 1000), 200);
+    const id = setInterval(() => setElapsed(startedAt.current ? (Date.now() - startedAt.current) / 1000 : 0), 200);
     const loops = [
       Animated.loop(Animated.sequence([Animated.timing(blink, { toValue: 0.2, duration: 500, useNativeDriver: true }), Animated.timing(blink, { toValue: 1, duration: 500, useNativeDriver: true })])),
       // «‹ влево — отмена» покачивается, стрелка замка зовёт вверх
@@ -57,15 +74,10 @@ export function useVoice({ chatId, replyToId, onSent }: { chatId: string; replyT
     };
   }, [rec, blink, nudge, bob]);
 
-  async function start(): Promise<boolean> {
-    if (Platform.OS === 'web') {
-      toast('Запись голосовых работает в приложении на iPhone');
-      return false;
-    }
-    if (!(await hasPermission('mic'))) {
-      await ensurePermission('mic');
-      return false; // после разрешения — удерживайте ещё раз
-    }
+  /** Включить микрофон. После этого выполняет то, что успели решить, пока он включался. */
+  async function start() {
+    starting.current = true;
+    let ok = false;
     try {
       stopPlayback();
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
@@ -73,20 +85,42 @@ export function useVoice({ chatId, replyToId, onSent }: { chatId: string; replyT
       recorder.record();
       samples.current = [];
       startedAt.current = Date.now();
-      setElapsed(0);
+      ok = true;
       haptic.medium();
-      return true;
     } catch (e) {
       toast('Не удалось начать запись: ' + String((e as Error)?.message ?? e));
-      return false;
     }
+    starting.current = false;
+    const todo = pending.current;
+    pending.current = null;
+    if (!ok) {
+      held.current = false;
+      reset();
+      return;
+    }
+    if (todo === 'send') finish(true);
+    else if (todo === 'discard') finish(false, true);
   }
 
-  async function finish(send: boolean, silent = false) {
-    const dur = (Date.now() - startedAt.current) / 1000;
+  function reset() {
     setRec('idle');
     dragX.setValue(0);
     dragY.setValue(0);
+  }
+
+  /** Остановить запись: send — отправить, иначе выбросить */
+  async function finish(send: boolean, silent = false) {
+    if (state.current === 'idle' && !startedAt.current) return;
+    // пока микрофон включается — решим, когда включится
+    if (starting.current) {
+      pending.current = send ? 'send' : 'discard';
+      if (!send) reset();
+      return;
+    }
+    const dur = startedAt.current ? (Date.now() - startedAt.current) / 1000 : 0;
+    startedAt.current = 0;
+    held.current = false;
+    reset();
     try {
       await recorder.stop();
     } catch {
@@ -120,78 +154,108 @@ export function useVoice({ chatId, replyToId, onSent }: { chatId: string; replyT
     }
   }
 
-  const fn = useRef({ start, finish });
-  fn.current = { start, finish };
-
-  // held — палец сейчас на кнопке; если запись запустилась уже после того, как палец отпустили, — выбрасываем её
-  const held = useRef(false);
-  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const beginHold = async () => {
-    holdTimer.current = null;
-    if (!held.current) return;
-    const ok = await fn.current.start();
-    if (!ok) return;
-    if (!held.current) {
-      fn.current.finish(false, true);
+  function grant() {
+    // запись «повисла» без пальца (палец потерян системой) — тап по кнопке отправляет
+    if (state.current === 'recording' && !held.current) {
+      finish(true);
       return;
     }
+    if (state.current !== 'idle') return;
+    if (Platform.OS === 'web') {
+      toast('Запись голосовых работает в приложении на iPhone');
+      return;
+    }
+    if (!micOk.current) {
+      // первый раз — спрашиваем доступ; писать начнём со следующего удержания
+      hasPermission('mic')
+        .then((ok) => ok || ensurePermission('mic'))
+        .then((ok) => (micOk.current = !!ok))
+        .catch(() => {});
+      return;
+    }
+    held.current = true;
+    pressedAt.current = Date.now();
+    pending.current = null;
     pop.setValue(0.5);
     Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 10 }).start();
+    setElapsed(0);
     setRec('recording');
-  };
-  const beginRef = useRef(beginHold);
-  beginRef.current = beginHold;
+    start();
+  }
 
-  const release = () => {
+  function release() {
+    if (!held.current) return;
     held.current = false;
-    if (holdTimer.current) {
-      clearTimeout(holdTimer.current);
-      holdTimer.current = null;
+    if (state.current !== 'recording') return;
+    if (Date.now() - pressedAt.current < TAP_MS) {
       haptic.light();
       toast('Удерживайте, чтобы записать');
+      finish(false, true);
       return;
     }
-    if (recRef.current === 'recording') fn.current.finish(true);
-  };
-  const releaseRef = useRef(release);
-  releaseRef.current = release;
+    finish(true);
+  }
+
+  function move(dx: number, dy: number) {
+    if (state.current !== 'recording' || !held.current) return;
+    dragX.setValue(Math.min(0, dx));
+    dragY.setValue(Math.min(0, dy));
+    if (dx < CANCEL_DX) {
+      held.current = false;
+      if (starting.current) haptic.warning();
+      finish(false); // влево — отмена
+    } else if (dy < LOCK_DY && !starting.current) {
+      held.current = false;
+      haptic.success();
+      dragX.setValue(0);
+      dragY.setValue(0);
+      setRec('locked'); // вверх на замок — запись идёт без пальца
+    }
+  }
+
+  const fn = useRef({ grant, release, move });
+  fn.current = { grant, release, move };
 
   const pan = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => recRef.current === 'idle',
-      onStartShouldSetPanResponderCapture: () => recRef.current === 'idle',
+      onStartShouldSetPanResponder: () => state.current !== 'locked',
+      onStartShouldSetPanResponderCapture: () => state.current !== 'locked',
       onPanResponderTerminationRequest: () => false,
       onShouldBlockNativeResponder: () => true,
-      onPanResponderGrant: () => {
-        held.current = true;
-        holdTimer.current = setTimeout(() => beginRef.current(), HOLD_MS);
-      },
-      onPanResponderMove: (_, g) => {
-        if (recRef.current !== 'recording') return;
-        dragX.setValue(Math.min(0, g.dx));
-        dragY.setValue(Math.min(0, g.dy));
-        if (g.dx < CANCEL_DX) {
-          held.current = false;
-          fn.current.finish(false);
-        } else if (g.dy < LOCK_DY) {
-          haptic.success();
-          dragX.setValue(0);
-          dragY.setValue(0);
-          setRec('locked');
-        }
-      },
-      onPanResponderRelease: () => releaseRef.current(),
-      onPanResponderTerminate: () => releaseRef.current(),
+      onPanResponderGrant: () => fn.current.grant(),
+      onPanResponderMove: (_, g) => fn.current.move(g.dx, g.dy),
+      onPanResponderRelease: () => fn.current.release(),
+      // систему отобрала касание (например, жест iOS) — ведём себя как при отпускании
+      onPanResponderTerminate: () => fn.current.release(),
     }),
   ).current;
 
+  // ушли из чата посреди записи — выбрасываем её
   useEffect(
     () => () => {
-      if (holdTimer.current) clearTimeout(holdTimer.current);
+      if (state.current !== 'idle' || startedAt.current) {
+        try {
+          recorder.stop().catch(() => {});
+        } catch {
+          // запись уже освобождена
+        }
+        setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
+      }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
-  return { rec, elapsed, panHandlers: pan.panHandlers, dragX, dragY, blink, pop, nudge, bob, finish: (send: boolean) => fn.current.finish(send) };
+  return {
+    rec,
+    elapsed,
+    panHandlers: pan.panHandlers,
+    dragX,
+    dragY,
+    blink,
+    pop,
+    nudge,
+    bob,
+    finish,
+  };
 }
