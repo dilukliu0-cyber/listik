@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>08 · Запуск, доступы, скрепка, иконка</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+body{margin:0;padding:24px 16px;background:#e9e9ee;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif}
+.wrap{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
+.ph{width:220px;height:470px;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;font-size:12px;line-height:1.35;border:1px solid #ccc;position:relative}
+.lb{text-align:center;font-size:13px;color:#666;margin-top:8px}
+.ico{border-radius:22%;background:#3390EC;display:flex;align-items:center;justify-content:center;color:#fff}
+.sh{position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end}
+.chip{padding:5px 10px;border-radius:14px;background:#efeff0;font-size:11px;display:inline-flex;gap:4px;align-items:center}
+.am{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:#6c6c70}
+.am span{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px}
+.g{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:0 2px}
+.g div{aspect-ratio:1}
+</style></head><body>
+<div class="wrap">
+
+<div><div class="ph" style="background:#3390EC;color:#fff;align-items:center;justify-content:center">
+<div class="ico" style="width:84px;height:84px;background:#fff;color:#3390EC;font-size:48px"><i class="ti ti-message-2"></i></div>
+<div style="font-size:26px;font-weight:700;margin-top:14px;letter-spacing:.5px">Listik</div>
+<div style="font-size:11px;opacity:.8;margin-top:2px">заметки как сообщения</div>
+<div style="position:absolute;bottom:24px;display:flex;gap:14px;align-items:flex-end">
+<div style="text-align:center"><div class="ico" style="width:46px;height:46px;font-size:26px;border:1.5px solid #fff"><i class="ti ti-message-2"></i></div><div style="font-size:9px;margin-top:3px">светлая</div></div>
+<div style="text-align:center"><div class="ico" style="width:46px;height:46px;font-size:26px;background:#1c1c1d;color:#5EB5F7"><i class="ti ti-message-2"></i></div><div style="font-size:9px;margin-top:3px">тёмная</div></div>
+</div></div><div class="lb">Заставка и иконка</div></div>
+
+<div><div class="ph" style="background:#fff;color:#000">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 12px 4px"><span style="color:#3390EC">Изм.</span><span style="font-weight:600;font-size:14px">Чаты</span><i class="ti ti-edit" style="color:#3390EC;font-size:19px"></i></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 18px;text-align:center">
+<div style="width:70px;height:70px;border-radius:50%;background:#E6F1FB;color:#3390EC;display:flex;align-items:center;justify-content:center;font-size:34px"><i class="ti ti-message-plus"></i></div>
+<div style="font-weight:600;font-size:14px;margin:10px 0 4px">Создайте первый чат</div>
+<div style="color:#8e8e93;font-size:11px">Каждый чат — тема. Пишите туда, как другу: текст, фото, голосовые.</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:14px"><span class="chip"><i class="ti ti-bulb" style="color:#F2A33A"></i>Идеи</span><span class="chip"><i class="ti ti-shopping-cart" style="color:#4FAE4E"></i>Покупки</span><span class="chip"><i class="ti ti-movie" style="color:#E2574C"></i>Фильмы</span><span class="chip"><i class="ti ti-briefcase" style="color:#3390EC"></i>Работа</span></div>
+<div style="background:#3390EC;color:#fff;padding:9px 18px;border-radius:10px;margin-top:14px;font-weight:600">Новый чат</div>
+</div>
+<div style="display:flex;justify-content:space-around;padding:6px 0 14px;font-size:10px;text-align:center;background:#f7f7f7;border-top:0.5px solid #e5e5ea;color:#8e8e93"><div style="color:#3390EC"><i class="ti ti-message-circle" style="font-size:22px;display:block"></i>Чаты</div><div><i class="ti ti-photo" style="font-size:22px;display:block"></i>Медиа</div><div><i class="ti ti-settings" style="font-size:22px;display:block"></i>Настройки</div></div>
+</div><div class="lb">Первый запуск</div></div>
+
+<div><div class="ph" style="background:#C9DDB8">
+<div style="background:#f7f7f7;padding:14px 10px 8px;text-align:center;font-weight:600">Идеи</div><div style="flex:1"></div>
+<div class="sh" style="align-items:center;justify-content:center"><div style="width:180px;background:#f2f2f2;border-radius:14px;text-align:center;color:#000;overflow:hidden">
+<div style="padding:14px 12px 10px"><i class="ti ti-microphone" style="font-size:26px;color:#3390EC"></i><div style="font-weight:600;margin:4px 0">Нужен микрофон</div><div style="font-size:11px;color:#6c6c70">Чтобы записывать голосовые заметки. Запись остаётся на телефоне.</div></div>
+<div style="border-top:0.5px solid #d1d1d6;padding:9px;color:#3390EC;font-weight:600">Продолжить</div><div style="border-top:0.5px solid #d1d1d6;padding:9px;color:#3390EC">Не сейчас</div></div></div>
+</div><div class="lb">Перед системным запросом</div></div>
+
+<div><div class="ph" style="background:#C9DDB8">
+<div style="background:#f7f7f7;padding:14px 10px 8px;text-align:center;font-weight:600">Идеи</div><div style="flex:1"></div>
+<div class="sh"><div style="background:#fff;width:100%;border-radius:16px 16px 0 0;padding:8px 0 16px;color:#000">
+<div style="width:36px;height:4px;border-radius:2px;background:#d1d1d6;margin:0 auto 8px"></div>
+<div class="g"><div style="background:#2c2c2e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px"><i class="ti ti-camera"></i></div><div style="background:#8FB27A"></div><div style="background:#B9D3EE"></div><div style="background:#E8C9A0"></div><div style="background:#C7B8E8"></div><div style="background:#9FD4C4"></div><div style="background:#F0B7A4"></div><div style="background:#D0D8B0"></div></div>
+<div style="display:flex;justify-content:space-around;padding:12px 6px 0"><div class="am"><span style="background:#3390EC"><i class="ti ti-photo"></i></span>Галерея</div><div class="am"><span style="background:#2AABEE"><i class="ti ti-file"></i></span>Файл</div><div class="am"><span style="background:#4FAE4E"><i class="ti ti-checklist"></i></span>Список</div><div class="am"><span style="background:#F2A33A"><i class="ti ti-map-pin"></i></span>Место</div></div>
+</div></div>
+</div><div class="lb">Меню скрепки</div></div>
+
+<div><div class="ph" style="background:#000;color:#fff">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 12px"><i class="ti ti-x" style="font-size:20px"></i><div style="text-align:center"><div style="font-weight:600">3 из 18</div><div style="font-size:10px;opacity:.6">Идеи · 12 окт</div></div><i class="ti ti-dots" style="font-size:20px"></i></div>
+<div style="flex:1;display:flex;align-items:center"><div style="width:100%;height:200px;background:#8FB27A"></div></div>
+<div style="padding:8px 12px;font-size:11px;opacity:.85">Подпись к фото, если была</div>
+<div style="display:flex;justify-content:space-around;padding:10px 0 18px;font-size:20px"><i class="ti ti-share"></i><i class="ti ti-message-circle-search"></i><i class="ti ti-pin"></i><i class="ti ti-trash"></i></div>
+</div><div class="lb">Фото на весь экран</div></div>
+
+</div></body></html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>03 · Профиль чата</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+body{margin:0;padding:24px 16px;background:#e9e9ee;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif}
+#w{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.ph{width:250px;height:540px;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;font-size:12px;line-height:1.35;border:1px solid #ccc}
+.btn{flex:1;border-radius:10px;padding:7px 0;text-align:center;font-size:10px}
+.btn i{display:block;font-size:18px}
+.tabs{display:flex;gap:12px;padding:8px 12px 0;font-size:12px;white-space:nowrap;overflow:hidden}
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.g div{aspect-ratio:1}
+.lb{text-align:center;font-size:13px;color:#666;margin-top:8px}
+</style></head><body>
+<div id="w"></div>
+<script>
+const T={l:{bg:'#efeff4',card:'#fff',tx:'#000',sub:'#8e8e93',acc:'#3390EC',ln:'#e5e5ea',ph:['#8FB27A','#B9D3EE','#E8C9A0','#C7B8E8','#9FD4C4','#F0B7A4','#D0D8B0','#A8C4E0','#E0C0D0']},d:{bg:'#000',card:'#1c1c1d',tx:'#fff',sub:'#8d8e93',acc:'#3E88F7',ln:'#2c2c2e',ph:['#3b5235','#2a4258','#5a4630','#40375a','#2f5248','#5c3a30','#454c33','#334a60','#553a48']}};
+function prof(k,lab){const t=T[k];let g='';for(let i=0;i<12;i++)g+=`<div style="background:${t.ph[i%9]}"></div>`;
+return `<div><div class="ph" style="background:${t.bg};color:${t.tx}">
+<div style="display:flex;justify-content:space-between;padding:14px 12px 0;color:${t.acc}"><i class="ti ti-chevron-left" style="font-size:20px"></i><span>Изм.</span></div>
+<div style="text-align:center;padding:4px 0 10px"><div style="width:70px;height:70px;border-radius:50%;background:#4FAE4E;color:#fff;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:34px"><i class="ti ti-shopping-cart"></i></div><div style="font-size:16px;font-weight:600;margin-top:6px">Покупки</div><div style="color:${t.sub};font-size:11px">24 заметки · с 3 марта</div></div>
+<div style="display:flex;gap:6px;padding:0 10px">${[['ti-search','поиск'],['ti-photo','обои'],['ti-archive','в архив'],['ti-dots','ещё']].map(b=>`<div class="btn" style="background:${t.card};color:${t.acc}"><i class="ti ${b[0]}"></i>${b[1]}</div>`).join('')}</div>
+<div style="margin-top:10px;background:${t.card};flex:1">
+<div class="tabs" style="border-bottom:0.5px solid ${t.ln};color:${t.sub}"><span style="color:${t.acc};border-bottom:2px solid ${t.acc};padding-bottom:6px">Медиа</span><span>Ссылки</span><span>Файлы</span><span>Голосовые</span><span>Закреп</span></div>
+<div style="padding:6px 10px 4px;font-size:11px;color:${t.sub}">Октябрь</div><div class="g">${g}</div></div>
+</div><div class="lb">${lab}</div></div>`}
+function lists(){const t=T.l;const row=(i,a,b)=>`<div style="display:flex;gap:9px;padding:8px 10px;border-bottom:0.5px solid ${t.ln}"><div style="width:36px;height:36px;border-radius:8px;background:${t.acc};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none"><i class="ti ${i}"></i></div><div style="min-width:0"><div style="font-weight:600">${a}</div><div style="color:${t.sub};font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b}</div></div></div>`;
+const v=(d,len,tx)=>`<div style="padding:8px 10px;border-bottom:0.5px solid ${t.ln}"><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:50%;background:#4FAE4E;color:#fff;display:flex;align-items:center;justify-content:center"><i class="ti ti-player-play"></i></div><div style="flex:1"><div style="font-weight:600">${d}</div><div style="color:${t.sub};font-size:11px">${len}</div></div><span style="border:1px solid #4FAE4E;color:#4FAE4E;border-radius:6px;padding:0 4px;font-size:10px;font-weight:600">→A</span></div>${tx?`<div style="font-size:11px;color:${t.sub};margin:6px 0 0 40px;background:${t.bg};border-radius:8px;padding:5px 7px">«ещё взять батарейки и корм коту»</div>`:''}</div>`;
+return `<div><div class="ph" style="background:${t.card};color:${t.tx}"><div style="padding:14px 12px 6px;display:flex;gap:8px;align-items:center;color:${t.acc}"><i class="ti ti-chevron-left" style="font-size:20px"></i><span style="color:${t.tx};font-weight:600">Покупки</span></div>
+<div class="tabs" style="border-bottom:0.5px solid ${t.ln};color:${t.sub}"><span>Медиа</span><span style="color:${t.acc};border-bottom:2px solid ${t.acc};padding-bottom:6px">Ссылки</span><span>Файлы</span><span>Голосовые</span></div>
+${row('ti-link','Ozon · Кофе в зёрнах 1 кг','ozon.ru/product/…')}${row('ti-link','Рецепт блинов на молоке','eda.ru/recepty/…')}
+<div class="tabs" style="border-bottom:0.5px solid ${t.ln};color:${t.sub};margin-top:10px"><span>Медиа</span><span>Ссылки</span><span>Файлы</span><span style="color:${t.acc};border-bottom:2px solid ${t.acc};padding-bottom:6px">Голосовые</span></div>
+${v('Сегодня, 10:31','0:14',1)}${v('Вчера, 19:02','0:42',0)}
+</div><div class="lb">Ссылки и голосовые (→A раскрыто)</div></div>`}
+document.getElementById('w').innerHTML=prof('l','Профиль чата')+prof('d','Тёмная')+lists();
+</script></body></html>

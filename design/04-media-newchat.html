@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>04 · Медиа и новый чат</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+body{margin:0;padding:24px 16px;background:#e9e9ee;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif}
+#w{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.ph{width:250px;height:540px;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;font-size:12px;line-height:1.35;border:1px solid #ccc;position:relative}
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.g div{aspect-ratio:1;position:relative}
+.tb{display:flex;justify-content:space-around;padding:6px 0 14px;font-size:10px;text-align:center}
+.tb i{font-size:22px;display:block}
+.chip{padding:3px 10px;border-radius:14px;font-size:11px;white-space:nowrap}
+.lb{text-align:center;font-size:13px;color:#666;margin-top:8px}
+</style></head><body>
+<div id="w"></div>
+<script>
+const T={l:{bg:'#fff',tx:'#000',sub:'#8e8e93',acc:'#3390EC',ln:'#e5e5ea',bar:'#f7f7f7',chip:'#efeff0',grp:'#efeff4',card:'#fff',ph:['#8FB27A','#B9D3EE','#E8C9A0','#C7B8E8','#9FD4C4','#F0B7A4','#D0D8B0','#A8C4E0','#E0C0D0']},d:{bg:'#000',tx:'#fff',sub:'#8d8e93',acc:'#3E88F7',ln:'#262628',bar:'#121212',chip:'#1c1c1d',grp:'#000',card:'#1c1c1d',ph:['#3b5235','#2a4258','#5a4630','#40375a','#2f5248','#5c3a30','#454c33','#334a60','#553a48']}};
+const dot=['#F2A33A','#4FAE4E','#E2574C','#3390EC'];
+function media(k,lab){const t=T[k];const grid=n=>{let g='';for(let i=0;i<n;i++)g+=`<div style="background:${t.ph[(i*4+n)%9]}"><span style="position:absolute;left:4px;bottom:4px;width:8px;height:8px;border-radius:50%;background:${dot[i%4]};border:1px solid #fff"></span></div>`;return `<div class="g">${g}</div>`};
+return `<div><div class="ph" style="background:${t.bg};color:${t.tx}">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 12px 4px"><span style="color:${t.acc}">Выбрать</span><span style="font-weight:600;font-size:14px">Медиа</span><i class="ti ti-search" style="color:${t.acc};font-size:19px"></i></div>
+<div style="display:flex;gap:6px;padding:6px 10px;overflow:hidden">${['Все','Идеи','Покупки','Фильмы','Работа'].map((c,i)=>`<span class="chip" style="background:${i?t.chip:t.acc};color:${i?t.tx:'#fff'}">${c}</span>`).join('')}</div>
+<div style="padding:6px 10px 4px;font-size:11px;color:${t.sub}">Октябрь · 18 фото</div>${grid(9)}
+<div style="padding:8px 10px 4px;font-size:11px;color:${t.sub}">Сентябрь · 31 фото</div>${grid(6)}
+<div style="flex:1"></div><div class="tb" style="background:${t.bar};border-top:0.5px solid ${t.ln};color:${t.sub}"><div><i class="ti ti-message-circle"></i>Чаты</div><div style="color:${t.acc}"><i class="ti ti-photo"></i>Медиа</div><div><i class="ti ti-settings"></i>Настройки</div></div>
+</div><div class="lb">${lab}</div></div>`}
+function nw(){const t=T.l;const cols=['#E2574C','#F2A33A','#4FAE4E','#2AABEE','#3390EC','#8E6CEF','#E05BA0','#8e8e93'];const ic=['ti-bulb','ti-shopping-cart','ti-briefcase','ti-book','ti-movie','ti-plane','ti-heart','ti-school','ti-music','ti-home','ti-barbell','ti-camera'];
+return `<div><div class="ph" style="background:${t.grp};color:${t.tx}">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 12px 8px"><span style="color:${t.acc}">Отмена</span><span style="font-weight:600;font-size:14px">Новый чат</span><span style="color:${t.acc};font-weight:600">Создать</span></div>
+<div style="text-align:center;padding:6px 0"><div style="width:70px;height:70px;border-radius:50%;background:#8E6CEF;color:#fff;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:34px"><i class="ti ti-book"></i></div><div style="color:${t.acc};font-size:11px;margin-top:4px">Выбрать фото</div></div>
+<div style="margin:6px 10px;background:${t.card};border-radius:10px;padding:9px 10px">Книги<span style="color:${t.acc}">|</span></div>
+<div style="margin:10px 10px 0;background:${t.card};border-radius:10px;padding:10px"><div style="font-size:10px;color:${t.sub};margin-bottom:6px">ЦВЕТ</div><div style="display:flex;justify-content:space-between">${cols.map((c,i)=>`<span style="width:20px;height:20px;border-radius:50%;background:${c};${i==5?'box-shadow:0 0 0 2px #fff,0 0 0 4px '+c:''}"></span>`).join('')}</div>
+<div style="font-size:10px;color:${t.sub};margin:12px 0 6px">ЗНАЧОК</div><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;color:${t.sub};font-size:20px;text-align:center">${ic.map((x,i)=>`<i class="ti ${x}" style="${i==3?'color:#8E6CEF;background:#EEEDFE;border-radius:8px':''}"></i>`).join('')}</div></div>
+</div><div class="lb">Новый чат (карандаш)</div></div>`}
+document.getElementById('w').innerHTML=media('l','Медиа')+media('d','Медиа, тёмная')+nw();
+</script></body></html>

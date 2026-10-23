@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>01 · Список чатов</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+body{margin:0;padding:24px 16px;background:#e9e9ee;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif}
+#wrap{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.ph{width:250px;height:520px;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;font-size:12px;line-height:1.3;border:1px solid #ccc}
+.row{display:flex;gap:9px;padding:7px 10px;align-items:center}
+.av{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px}
+.mid{flex:1;min-width:0;padding-bottom:7px}
+.top{display:flex;justify-content:space-between}
+.nm{font-weight:600;font-size:13px}
+.pv{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.tb{display:flex;justify-content:space-around;padding:6px 0 14px;font-size:10px;text-align:center}
+.tb i{font-size:22px;display:block}
+.lb{text-align:center;font-size:13px;color:#666;margin-top:8px}
+</style></head><body>
+<div id="wrap"></div>
+<script>
+const T={l:{bg:'#fff',tx:'#000',sub:'#8e8e93',ln:'#e5e5ea',acc:'#3390EC',srch:'#efeff0',bar:'#f7f7f7',pin:'#c7c7cc',arch:'#f7f7f7'},d:{bg:'#000',tx:'#fff',sub:'#8d8e93',ln:'#262628',acc:'#3E88F7',srch:'#1c1c1d',bar:'#121212',pin:'#545458',arch:'#000'}};
+const C=[['ti-bulb','#F2A33A','Идеи','Сделать вход по Apple','12:04',1,0],['ti-shopping-cart','#4FAE4E','Покупки','☐ молоко ☐ хлеб ☑ кофе','11:30',1,3],['ti-movie','#E2574C','Фильмы','Фото','вчера',0,0],['ti-briefcase','#3390EC','Работа','Голосовое: «созвон в пять…»','вт',0,0],['ti-book','#8E6CEF','Книги','«Мастер и Маргарита» — дочитать','пн',0,0],['ti-plane','#2AABEE','Поездка','maps.apple.com/…','12.10',0,0]];
+function ph(k,label){const t=T[k];let h=`<div><div class="ph" style="background:${t.bg};color:${t.tx}">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 12px 4px"><span style="color:${t.acc}">Изм.</span><span class="nm" style="font-size:14px">Чаты</span><i class="ti ti-edit" style="color:${t.acc};font-size:19px"></i></div>
+<div style="margin:6px 10px;background:${t.srch};border-radius:9px;padding:6px 8px;color:${t.sub}"><i class="ti ti-search"></i> Поиск по заметкам</div>
+<div class="row" style="background:${t.arch}"><div class="av" style="background:${t.pin}"><i class="ti ti-archive"></i></div><div class="mid" style="border-bottom:0.5px solid ${t.ln}"><div class="top"><span class="nm">Архив</span></div><div class="pv" style="color:${t.sub}">Учёба, Старые идеи</div></div></div>`;
+for(const c of C){h+=`<div class="row"><div class="av" style="background:${c[1]}"><i class="ti ${c[0]}"></i></div><div class="mid" style="border-bottom:0.5px solid ${t.ln}"><div class="top"><span class="nm">${c[2]}</span><span style="color:${t.sub};font-size:11px">${c[4]}</span></div><div class="top"><span class="pv" style="color:${t.sub}">${c[3]}</span>${c[6]?`<span style="background:${t.acc};color:#fff;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px">${c[6]}</span>`:c[5]?`<i class="ti ti-pin" style="color:${t.pin};font-size:14px;margin-left:4px"></i>`:''}</div></div></div>`}
+h+=`<div style="flex:1"></div><div class="tb" style="background:${t.bar};border-top:0.5px solid ${t.ln};color:${t.sub}"><div style="color:${t.acc}"><i class="ti ti-message-circle"></i>Чаты</div><div><i class="ti ti-photo"></i>Медиа</div><div><i class="ti ti-settings"></i>Настройки</div></div></div><div class="lb">${label}</div></div>`;return h}
+document.getElementById('wrap').innerHTML=ph('l','Светлая')+ph('d','Тёмная');
+</script></body></html>

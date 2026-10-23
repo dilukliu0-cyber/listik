@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>02 · Экран чата</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+body{margin:0;padding:24px 16px;background:#e9e9ee;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif}
+#w{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.ph{width:250px;height:540px;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;font-size:12px;line-height:1.35;border:1px solid #ccc;position:relative}
+.hd{display:flex;align-items:center;gap:8px;padding:12px 10px 8px}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex:none}
+.bd{flex:1;padding:8px;display:flex;flex-direction:column;gap:5px;justify-content:flex-end;overflow:hidden}
+.b{max-width:80%;align-self:flex-end;padding:6px 9px;border-radius:15px 15px 4px 15px}
+.t{font-size:10px;opacity:.55;float:right;margin:4px 0 0 8px}
+.dt{align-self:center;font-size:11px;padding:2px 8px;border-radius:10px;color:#fff;background:rgba(0,0,0,.25)}
+.lb{text-align:center;font-size:13px;color:#666;margin-top:8px}
+.mi{display:flex;justify-content:space-between;padding:8px 12px;font-size:13px}
+</style></head><body>
+<div id="w"></div>
+<script>
+const T={l:{wp:'#C9DDB8',bar:'#f7f7f7',tx:'#000',sub:'#8e8e93',acc:'#3390EC',out:'#EFFDDE',ok:'#4FAE4E',fld:'#fff',ln:'#ddd',menu:'#f2f2f2',img:'#8FB27A',q:'#4FAE4E'},d:{wp:'#0E1621',bar:'#17212B',tx:'#fff',sub:'#6d7f8f',acc:'#5EB5F7',out:'#2B5278',ok:'#7EC8F7',fld:'#242f3d',ln:'#0b121a',menu:'#232e3c',img:'#24384d',q:'#7EC8F7'}};
+function head(t){return `<div class="hd" style="background:${t.bar};color:${t.tx}"><i class="ti ti-chevron-left" style="color:${t.acc};font-size:20px"></i><span style="color:${t.acc}">Чаты</span><div style="flex:1;text-align:center"><div style="font-weight:600;font-size:13px">Покупки</div><div style="font-size:10px;color:${t.sub}">24 заметки</div></div><div class="av" style="background:#4FAE4E"><i class="ti ti-shopping-cart"></i></div></div>
+<div style="display:flex;gap:6px;padding:6px 10px;background:${t.bar};border-top:0.5px solid ${t.ln};color:${t.tx};font-size:11px"><div style="width:2px;background:${t.acc}"></div><div style="flex:1"><div style="color:${t.acc};font-weight:600">Закреплённое #2</div>Пароль от вайфая на даче: 4417…</div><i class="ti ti-list" style="color:${t.sub};font-size:16px"></i></div>`}
+function msgs(t){return `<div class="dt">Сегодня</div>
+<div class="b" style="background:${t.out};color:${t.tx}"><div style="border-left:2px solid ${t.q};padding-left:6px;margin-bottom:3px;font-size:11px"><span style="color:${t.q};font-weight:600">Ответ</span><br>Рецепт блинов</div>Купить муку и молоко<span class="t">10:02</span></div>
+<div class="b" style="background:${t.out};color:${t.tx}"><div><i class="ti ti-square" style="color:${t.sub}"></i> молоко</div><div><i class="ti ti-square" style="color:${t.sub}"></i> хлеб</div><div style="opacity:.5;text-decoration:line-through"><i class="ti ti-square-check" style="color:${t.ok}"></i> кофе</div><span class="t">10:05</span></div>
+<div style="align-self:flex-end;width:150px;height:95px;border-radius:14px;background:${t.img};position:relative"><span style="position:absolute;right:6px;bottom:4px;font-size:10px;color:#fff">10:20</span></div>
+<div class="b" style="background:${t.out};color:${t.tx}"><div style="display:flex;align-items:center;gap:6px"><div class="av" style="width:28px;height:28px;background:${t.ok}"><i class="ti ti-player-play"></i></div><div style="flex:1;height:14px;background:repeating-linear-gradient(90deg,${t.ok} 0 2px,transparent 2px 4px);opacity:.6"></div><span style="font-size:10px;color:${t.sub}">0:14</span><span style="border:1px solid ${t.ok};color:${t.ok};border-radius:6px;padding:0 4px;font-size:10px;font-weight:600">→A</span></div><span class="t">10:31</span></div>`}
+function input(t){return `<div style="display:flex;align-items:center;gap:7px;padding:8px 8px 16px;background:${t.bar}"><i class="ti ti-paperclip" style="color:${t.sub};font-size:20px"></i><div style="flex:1;background:${t.fld};border:0.5px solid ${t.ln};border-radius:16px;padding:6px 10px;color:${t.sub}">Заметка</div><i class="ti ti-microphone" style="color:${t.sub};font-size:20px"></i></div>`}
+function ph(k,menu,lab){const t=T[k];let h=`<div><div class="ph" style="background:${t.wp}">${head(t)}<div class="bd">${msgs(t)}</div>${input(t)}`;
+if(menu){h+=`<div style="position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;flex-direction:column;justify-content:center;align-items:flex-end;padding:10px;gap:8px"><div class="b" style="background:${t.out};color:${t.tx};max-width:75%">Купить муку и молоко<span class="t">10:02</span></div><div style="width:170px;background:${t.menu};border-radius:12px;color:${t.tx}">`+[['Ответить','ti-arrow-back-up'],['Закрепить','ti-pin'],['Изменить','ti-edit'],['Копировать','ti-copy'],['Переслать','ti-share-3'],['Выбрать','ti-circle-check']].map(m=>`<div class="mi" style="border-bottom:0.5px solid ${t.ln}">${m[0]}<i class="ti ${m[1]}"></i></div>`).join('')+`<div class="mi" style="color:#E5533D">Удалить<i class="ti ti-trash"></i></div></div></div>`}
+return h+`</div><div class="lb">${lab}</div></div>`}
+document.getElementById('w').innerHTML=ph('l',0,'Светлая')+ph('d',0,'Тёмная')+ph('l',1,'Долгое нажатие');
+</script></body></html>

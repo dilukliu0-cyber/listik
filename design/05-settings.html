@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>05 · Настройки</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+body{margin:0;padding:24px 16px;background:#e9e9ee;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif}
+#w{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.ph{width:250px;height:540px;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;font-size:12px;line-height:1.35;border:1px solid #ccc}
+.grp{margin:0 10px 12px;border-radius:10px;overflow:hidden}
+.r{display:flex;align-items:center;gap:9px;padding:7px 10px}
+.ic{width:24px;height:24px;border-radius:6px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.tb{display:flex;justify-content:space-around;padding:6px 0 14px;font-size:10px;text-align:center}
+.tb i{font-size:22px;display:block}
+.lb{text-align:center;font-size:13px;color:#666;margin-top:8px}
+</style></head><body>
+<div id="w"></div>
+<script>
+const t={bg:'#efeff4',card:'#fff',tx:'#000',sub:'#8e8e93',acc:'#3390EC',ln:'#e5e5ea',bar:'#f7f7f7'};
+const row=(c,i,a,v,last)=>`<div class="r" style="${last?'':'border-bottom:0.5px solid '+t.ln}"><div class="ic" style="background:${c}"><i class="ti ${i}"></i></div><span style="flex:1">${a}</span><span style="color:${t.sub}">${v||''}</span><i class="ti ti-chevron-right" style="color:#c7c7cc"></i></div>`;
+const tog=(c,i,a,on,last)=>`<div class="r" style="${last?'':'border-bottom:0.5px solid '+t.ln}"><div class="ic" style="background:${c}"><i class="ti ${i}"></i></div><span style="flex:1">${a}</span><span style="width:34px;height:20px;border-radius:10px;background:${on?'#34C759':'#e5e5ea'};position:relative"><span style="position:absolute;top:2px;${on?'right':'left'}:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>`;
+const S=`<div><div class="ph" style="background:${t.bg};color:${t.tx}"><div style="text-align:center;font-weight:600;font-size:14px;padding:14px 0 10px">Настройки</div>
+<div class="grp" style="background:${t.card}">${row('#3390EC','ti-palette','Оформление','Авто')}${row('#4FAE4E','ti-photo','Обои чатов','')}${row('#F2A33A','ti-text-size','Размер текста','16',1)}</div>
+<div class="grp" style="background:${t.card}">${row('#E2574C','ti-microphone','Расшифровка','Русский')}${tog('#8E6CEF','ti-hand-finger','Вибро-отклик',1,1)}</div>
+<div class="grp" style="background:${t.card}">${row('#8e8e93','ti-archive','Архив','3')}${row('#E2574C','ti-trash','Недавно удалённые','12')}${row('#2AABEE','ti-database','Память','184 МБ',1)}</div>
+<div class="grp" style="background:${t.card}">${row('#8e8e93','ti-info-circle','О приложении','1.0',1)}</div>
+<div style="flex:1"></div><div class="tb" style="background:${t.bar};border-top:0.5px solid ${t.ln};color:${t.sub}"><div><i class="ti ti-message-circle"></i>Чаты</div><div><i class="ti ti-photo"></i>Медиа</div><div style="color:${t.acc}"><i class="ti ti-settings"></i>Настройки</div></div></div><div class="lb">Настройки</div></div>`;
+const wp=['#C9DDB8','#B9D3EE','#E8D5C0','#D5CDEB','#0E1621','#F0E1D8','#CFE6E0','#2B2B2B'];
+const W=`<div><div class="ph" style="background:${t.bg};color:${t.tx}"><div style="display:flex;align-items:center;padding:14px 12px 10px;color:${t.acc}"><i class="ti ti-chevron-left" style="font-size:20px"></i>Назад<span style="flex:1;text-align:center;color:${t.tx};font-weight:600;font-size:14px;margin-right:40px">Обои</span></div>
+<div class="grp" style="background:${t.card}">${row('#3390EC','ti-photo-plus','Выбрать своё фото','',0)}${row('#8E6CEF','ti-color-swatch','Однотонный цвет','',1)}</div>
+<div style="padding:0 14px 6px;font-size:10px;color:${t.sub}">УЗОРЫ</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 10px">${wp.map((c,i)=>`<div style="aspect-ratio:.6;border-radius:8px;background:${c};position:relative;${i==0?'outline:2px solid '+t.acc+';outline-offset:1px':''}"><span style="position:absolute;right:6px;bottom:10px;width:26px;height:9px;border-radius:5px;background:${i==4||i==7?'#2B5278':'#EFFDDE'}"></span>${i==0?`<i class="ti ti-check" style="position:absolute;top:4px;right:4px;background:${t.acc};color:#fff;border-radius:50%;font-size:12px;padding:1px"></i>`:''}</div>`).join('')}</div>
+<div style="padding:10px 14px;font-size:10px;color:${t.sub}">Для всех чатов. Свои обои для одного чата — в его профиле.</div></div><div class="lb">Обои</div></div>`;
+const del=(a,b,d)=>`<div class="r" style="border-bottom:0.5px solid ${t.ln};align-items:flex-start"><i class="ti ti-circle" style="color:#c7c7cc;font-size:18px"></i><div style="flex:1;min-width:0"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a}</div><div style="color:${t.sub};font-size:11px">из «${b}» · осталось ${d} дн.</div></div></div>`;
+const D=`<div><div class="ph" style="background:${t.bg};color:${t.tx}"><div style="display:flex;align-items:center;padding:14px 12px 10px;color:${t.acc}"><i class="ti ti-chevron-left" style="font-size:20px"></i><span style="flex:1;text-align:center;color:${t.tx};font-weight:600;font-size:14px">Недавно удалённые</span>Выбрать</div>
+<div style="padding:0 14px 8px;font-size:11px;color:${t.sub}">Заметки и чаты хранятся 30 дней, потом удаляются навсегда.</div>
+<div class="grp" style="background:${t.card}"><div class="r" style="border-bottom:0.5px solid ${t.ln}"><i class="ti ti-circle" style="color:#c7c7cc;font-size:18px"></i><div class="ic" style="background:#2AABEE"><i class="ti ti-plane"></i></div><div style="flex:1"><div style="font-weight:600">Чат «Отпуск 2025»</div><div style="color:${t.sub};font-size:11px">48 заметок · осталось 21 дн.</div></div></div>
+${del('Купить муку и молоко','Покупки',29)}${del('Фото','Фильмы',12)}${del('Голосовое 0:42','Работа',3)}</div>
+<div style="flex:1"></div><div style="display:flex;justify-content:space-between;padding:10px 14px 18px;background:${t.bar};border-top:0.5px solid ${t.ln}"><span style="color:${t.acc}">Восстановить все</span><span style="color:#E5533D">Удалить все</span></div></div><div class="lb">Недавно удалённые</div></div>`;
+document.getElementById('w').innerHTML=S+W+D;
+</script></body></html>

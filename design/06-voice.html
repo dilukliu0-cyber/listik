@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>06 · Голосовые и Whisper</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+body{margin:0;padding:24px 16px;background:#e9e9ee;font-family:-apple-system,"SF Pro Text",system-ui,sans-serif}
+.wrap{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.ph{width:250px;height:540px;border-radius:30px;overflow:hidden;display:flex;flex-direction:column;font-size:12px;line-height:1.35;border:1px solid #ccc;position:relative}
+.bd{flex:1;padding:8px;display:flex;flex-direction:column;gap:6px;justify-content:flex-end}
+.b{max-width:84%;align-self:flex-end;padding:6px 9px;border-radius:15px 15px 4px 15px;background:#EFFDDE;color:#000}
+.t{font-size:10px;opacity:.55;float:right;margin:4px 0 0 8px}
+.pl{width:28px;height:28px;border-radius:50%;background:#4FAE4E;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.wv{flex:1;height:14px;background:repeating-linear-gradient(90deg,#4FAE4E 0 2px,transparent 2px 4px);opacity:.6}
+.tag{font-size:10px;color:#8e8e93;margin-top:2px}
+.grp{margin:0 10px 12px;border-radius:10px;overflow:hidden;background:#fff}
+.r{display:flex;align-items:center;gap:9px;padding:8px 10px;border-bottom:0.5px solid #e5e5ea}
+.lb{text-align:center;font-size:13px;color:#666;margin-top:8px}
+</style></head><body>
+<div class="wrap">
+
+<div><div class="ph" style="background:#C9DDB8">
+<div style="background:#f7f7f7;padding:14px 10px 8px;text-align:center;font-weight:600">Работа</div>
+<div class="bd">
+<div class="b"><div style="display:flex;align-items:center;gap:6px"><div class="pl"><i class="ti ti-player-play"></i></div><div class="wv"></div><span style="font-size:10px;color:#8e8e93">0:42</span><span style="border:1px solid #4FAE4E;color:#4FAE4E;border-radius:6px;padding:0 4px;font-size:10px;font-weight:600">→A</span></div><div class="tag">готово, нажми →A</div><span class="t">19:02</span></div>
+<div class="b"><div style="display:flex;align-items:center;gap:6px"><div class="pl"><i class="ti ti-player-play"></i></div><div class="wv"></div><span style="font-size:10px;color:#8e8e93">0:14</span><span style="color:#4FAE4E;border:1px solid #4FAE4E;border-radius:6px;padding:0 4px;font-size:10px;font-weight:600">A↑</span></div><div style="margin-top:5px;border-top:0.5px solid #cfe3bf;padding-top:5px">Созвон в пять, потом скинуть Пете макет и отчёт до пятницы.</div><span class="t">19:10</span></div>
+<div class="b"><div style="display:flex;align-items:center;gap:6px"><div class="pl"><i class="ti ti-player-play"></i></div><div class="wv"></div><span style="font-size:10px;color:#8e8e93">1:05</span><i class="ti ti-loader-2" style="color:#4FAE4E"></i></div><div class="tag">расшифровываю… 60%</div><span class="t">19:12</span></div>
+</div>
+<div style="display:flex;align-items:center;gap:8px;padding:8px 8px 16px;background:#f7f7f7;position:relative">
+<span style="width:8px;height:8px;border-radius:50%;background:#E5533D"></span><span>0:07</span><span style="flex:1;color:#8e8e93;font-size:11px;text-align:center">‹ влево — отмена</span>
+<div style="position:absolute;right:6px;bottom:52px;width:34px;height:60px;border-radius:17px;background:#fff;border:0.5px solid #ddd;display:flex;flex-direction:column;align-items:center;justify-content:space-around;color:#8e8e93"><i class="ti ti-lock"></i><i class="ti ti-chevron-up"></i></div>
+<div style="width:46px;height:46px;border-radius:50%;background:#3390EC;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;margin:-10px -2px -6px 0"><i class="ti ti-microphone"></i></div></div>
+</div><div class="lb">Чат: состояния и запись</div></div>
+
+<div><div class="ph" style="background:#efeff4;color:#000">
+<div style="display:flex;align-items:center;padding:14px 12px 10px;color:#3390EC"><i class="ti ti-chevron-left" style="font-size:20px"></i>Назад<span style="flex:1;text-align:center;color:#000;font-weight:600;font-size:14px;margin-right:40px">Расшифровка</span></div>
+<div class="grp"><div class="r"><div style="flex:1"><div style="font-weight:600">Модель Whisper</div><div style="color:#8e8e93;font-size:11px">large-v3-turbo · 547 МБ</div></div><span style="color:#34C759"><i class="ti ti-circle-check"></i> готова</span></div>
+<div class="r"><span style="flex:1">Язык</span><span style="color:#8e8e93">Авто (рус/англ)</span><i class="ti ti-chevron-right" style="color:#c7c7cc"></i></div>
+<div class="r" style="border:0"><span style="flex:1">Расшифровывать сразу</span><span style="width:34px;height:20px;border-radius:10px;background:#34C759;position:relative"><span style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div></div>
+<div style="padding:0 14px 12px;font-size:10px;color:#8e8e93">Всё работает на телефоне без интернета. Голос никуда не отправляется.</div>
+<div class="grp"><div class="r" style="border:0;color:#E5533D;justify-content:center">Удалить модель (освободить 547 МБ)</div></div>
+<div style="padding:4px 14px 6px;font-size:10px;color:#8e8e93">ПОКА МОДЕЛЬ КАЧАЕТСЯ</div>
+<div class="grp"><div style="padding:10px"><div style="display:flex;justify-content:space-between"><span style="font-weight:600">Загрузка модели</span><span style="color:#8e8e93">312 / 547 МБ</span></div><div style="height:4px;background:#e5e5ea;border-radius:2px;margin:8px 0"><div style="width:57%;height:4px;background:#3390EC;border-radius:2px"></div></div><div style="font-size:10px;color:#8e8e93">Через любую сеть. Актуальный экран настроек — в 07-whisper-download.html.</div></div></div>
+</div><div class="lb">Настройки → Расшифровка</div></div>
+
+</div></body></html>
