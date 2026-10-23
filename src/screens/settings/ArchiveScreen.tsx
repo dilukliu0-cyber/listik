@@ -35,7 +35,7 @@ export default function ArchiveScreen() {
         const sw = chatSwipeActions(item, t);
         return (
           <SwipeRow left={sw.left} right={sw.right}>
-            <ChatRow chat={item} onPress={() => nav.navigate('Chat', { chatId: item.id })} />
+            <ChatRow chat={item} onPress={() => !closeOpenRow() && nav.navigate('Chat', { chatId: item.id })} />
           </SwipeRow>
         );
       }}

@@ -1,10 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Reanimated, { LinearTransition } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { dateShort, listTime } from '../format';
+import { listTime } from '../format';
 import { haptic } from '../haptics';
 import type { RootStack } from '../navigation/types';
 import { actions, lastActivity, notePreview, noteSearchText, store, useStore, type Chat, type Note } from '../store';
@@ -70,6 +71,7 @@ type SearchHit = { key: string; chat: Chat; note?: Note };
 
 export default function ChatsScreen() {
   const t = useTheme();
+  const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const chatsMap = useStore((s) => s.chats);
   const notes = useStore((s) => s.notes);
@@ -98,7 +100,7 @@ export default function ChatsScreen() {
   }, [query, chatsMap, notes]);
 
   const open = (id: string, jumpTo?: string) => {
-    closeOpenRow();
+    if (closeOpenRow()) return; // как в Telegram: первый тап закрывает открытый свайп
     Keyboard.dismiss();
     nav.navigate('Chat', { chatId: id, jumpTo });
   };
@@ -114,6 +116,11 @@ export default function ChatsScreen() {
   };
 
   const empty = chats.length === 0 && archived.length === 0;
+
+  // в режиме «Изм.» панель действий встаёт на место вкладок, как в Telegram
+  useEffect(() => {
+    nav.setOptions({ tabBarStyle: editing ? { display: 'none' } : { backgroundColor: t.bar, borderTopColor: t.line } } as object);
+  }, [editing, nav, t.bar, t.line]);
 
   const header = (
     <TabHeader
@@ -192,11 +199,8 @@ export default function ChatsScreen() {
     </View>
   );
 
-  if (query.trim()) {
-    return (
-      <View style={{ flex: 1, backgroundColor: t.bg }}>
-        {header}
-        {searchBar}
+  // Поиск и обычный список — в одном дереве: поле поиска не пересоздаётся и не теряет фокус
+  const searchList = query.trim() ? (
         <FlatList
           data={hits}
           keyboardShouldPersistTaps="handled"
@@ -212,7 +216,7 @@ export default function ChatsScreen() {
                 <View style={{ flex: 1, alignSelf: 'stretch', justifyContent: 'center', paddingRight: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.line }}>
                   <View style={{ flexDirection: 'row' }}>
                     <Text numberOfLines={1} style={{ flex: 1, color: t.text, fontSize: 16, fontWeight: '600' }}>{item.chat.title}</Text>
-                    {item.note ? <Text style={{ color: t.sub, fontSize: 13 }}>{dateShort(item.note.createdAt)}</Text> : null}
+                    {item.note ? <Text style={{ color: t.sub, fontSize: 13 }}>{listTime(item.note.createdAt)}</Text> : null}
                   </View>
                   {item.note ? (
                     <Highlight text={notePreview(item.note)} query={query.trim()} color={t.sub} hl={t.text} />
@@ -224,14 +228,15 @@ export default function ChatsScreen() {
             </Pressable>
           )}
         />
-      </View>
-    );
-  }
+  ) : null;
 
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       {header}
+      {searchBar}
+      {searchList}
       <Reanimated.FlatList
+        style={searchList ? { display: 'none' } : undefined}
         data={chats}
         itemLayoutAnimation={rowLayout}
         keyExtractor={(c) => c.id}
@@ -239,7 +244,6 @@ export default function ChatsScreen() {
         onScrollBeginDrag={closeOpenRow}
         ListHeaderComponent={
           <>
-            {searchBar}
             {archived.length ? (
               <Pressable onPress={() => nav.navigate('Archive')} style={({ pressed }) => ({ backgroundColor: pressed ? t.line : t.dark ? t.bg : t.bar })}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 12 }}>
@@ -279,7 +283,7 @@ export default function ChatsScreen() {
         }}
       />
       {editing ? (
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12, backgroundColor: t.bar, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 12), backgroundColor: t.bar, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.line }}>
           <HeaderButton
             title="В архив"
             disabled={!selected.length}

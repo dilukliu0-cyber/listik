@@ -167,7 +167,10 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
 
   const onPress = useCallback(
     (n: Note) => {
-      if (!selecting) return;
+      if (!selecting) {
+        Keyboard.dismiss(); // как в Telegram: тап по ленте прячет клавиатуру
+        return;
+      }
       haptic.select();
       setSelected((s) => (s.includes(n.id) ? s.filter((x) => x !== n.id) : [...s, n.id]));
     },

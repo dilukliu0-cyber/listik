@@ -32,6 +32,35 @@ import type { RootStack } from './types';
 const Stack = createNativeStackNavigator<RootStack>();
 const Tab = createBottomTabNavigator();
 
+// В iOS 26 свайп «назад» работает с любого места экрана и перехватывает ползунки и горизонтальные
+// прокрутки. На экранах с такими элементами оставляем его только у левого края, как раньше в iOS.
+const EDGE_ONLY = { end: 44 };
+
+const BACK_TITLES: Record<string, string> = {
+  ChatsTab: 'Чаты',
+  MediaTab: 'Медиа',
+  SettingsTab: 'Настройки',
+  Appearance: 'Оформление',
+  Transcription: 'Расшифровка',
+  Archive: 'Архив',
+};
+
+type NavState = { routes: { key: string; name: string; state?: { index?: number; routes: { name: string }[] } }[] };
+
+/** Подпись «назад» — название экрана, на который вернёт */
+function backTitle(state: NavState | undefined, key: string): string {
+  const routes = state?.routes ?? [];
+  const i = routes.findIndex((r) => r.key === key);
+  const prev = i > 0 ? routes[i - 1] : undefined;
+  if (!prev) return 'Назад';
+  if (prev.name === 'Tabs') {
+    const tabs = prev.state;
+    const tab = tabs ? tabs.routes[tabs.index ?? 0]?.name : 'ChatsTab';
+    return BACK_TITLES[tab] ?? 'Назад';
+  }
+  return BACK_TITLES[prev.name] ?? 'Назад';
+}
+
 // Каждый экран в своём ErrorBoundary: ошибка одного экрана не роняет приложение
 function safe<P extends object>(C: ComponentType<P>) {
   const Wrapped = (props: P) => (
@@ -93,21 +122,29 @@ export default function Navigation() {
     ...base,
     colors: { ...base.colors, primary: t.accent, background: t.group, card: t.bar, text: t.text, border: t.line },
   };
-  const sub = { headerBackTitle: 'Назад', headerTintColor: t.accent, headerStyle: { backgroundColor: t.group }, headerShadowVisible: false, headerTitleStyle: { color: t.text } };
+  const sub = { headerTintColor: t.accent, headerStyle: { backgroundColor: t.group }, headerShadowVisible: false, headerTitleStyle: { color: t.text } };
   return (
     <NavigationContainer ref={navRef} theme={navTheme}>
       {/* нативные iOS-переходы стека со свайпом назад от края */}
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'default', gestureEnabled: true }}>
+      <Stack.Navigator
+        screenOptions={({ navigation, route }) => ({
+          headerShown: false,
+          animation: 'default',
+          gestureEnabled: true,
+          // кнопка «назад» подписана экраном, на который вернёт, как в Telegram
+          headerBackTitle: backTitle(navigation.getState() as unknown as NavState, route.key),
+        })}
+      >
         <Stack.Screen name="Tabs" component={Tabs} />
         <Stack.Screen name="Chat" component={S.Chat} />
-        <Stack.Screen name="ChatProfile" component={S.ChatProfile} />
+        <Stack.Screen name="ChatProfile" component={S.ChatProfile} options={{ gestureResponseDistance: EDGE_ONLY }} />
         <Stack.Screen name="EditChat" component={S.EditChat} options={{ presentation: 'modal' }} />
         <Stack.Screen name="PhotoViewer" component={S.PhotoViewer} options={{ presentation: 'transparentModal', animation: 'fade', gestureEnabled: false }} />
         <Stack.Screen name="Archive" component={S.Archive} options={{ ...sub, headerShown: true, title: 'Архив', headerStyle: { backgroundColor: t.bg } }} />
         <Stack.Screen name="Deleted" component={S.Deleted} options={{ ...sub, headerShown: true, title: 'Недавно удалённые' }} />
-        <Stack.Screen name="Appearance" component={S.Appearance} options={{ ...sub, headerShown: true, title: 'Оформление', gestureEnabled: false }} />
+        <Stack.Screen name="Appearance" component={S.Appearance} options={{ ...sub, headerShown: true, title: 'Оформление', gestureResponseDistance: EDGE_ONLY }} />
         <Stack.Screen name="Wallpaper" component={S.Wallpaper} options={{ ...sub, headerShown: true, title: 'Обои' }} />
-        <Stack.Screen name="TextSize" component={S.TextSize} options={{ ...sub, headerShown: true, title: 'Размер текста', gestureEnabled: false }} />
+        <Stack.Screen name="TextSize" component={S.TextSize} options={{ ...sub, headerShown: true, title: 'Размер текста', gestureResponseDistance: EDGE_ONLY }} />
         <Stack.Screen name="Transcription" component={S.Transcription} options={{ ...sub, headerShown: true, title: 'Расшифровка' }} />
         <Stack.Screen name="Language" component={S.Language} options={{ ...sub, headerShown: true, title: 'Язык' }} />
         <Stack.Screen name="Storage" component={S.Storage} options={{ ...sub, headerShown: true, title: 'Память' }} />

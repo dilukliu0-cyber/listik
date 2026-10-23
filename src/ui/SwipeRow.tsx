@@ -10,9 +10,12 @@ export type SwipeAction = { label: string; icon: IconName; color: string; onPres
 const W = 76;
 let openRow: { close: () => void } | null = null;
 
-export function closeOpenRow() {
+/** Закрыть открытую строку. true — какая-то была открыта (тогда тап не должен открывать чат). */
+export function closeOpenRow(): boolean {
+  const was = !!openRow;
   openRow?.close();
   openRow = null;
+  return was;
 }
 
 type Props = { children: ReactNode; left?: SwipeAction[]; right?: SwipeAction[]; enabled?: boolean };
@@ -36,7 +39,14 @@ export default function SwipeRow({ children, left = [], right = [], enabled = tr
 
   const pan = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => conf.current.enabled && Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.6,
+      // берём жест только в ту сторону, где есть действия (или чтобы закрыть открытую строку),
+      // иначе он достаётся свайпу «назад» и прокрутке
+      onMoveShouldSetPanResponder: (_, g) => {
+        const c = conf.current;
+        if (!c.enabled || Math.abs(g.dx) <= 12 || Math.abs(g.dx) <= Math.abs(g.dy) * 1.6) return false;
+        if (offset.current !== 0) return true;
+        return g.dx > 0 ? c.left.length > 0 : c.right.length > 0;
+      },
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: () => {
         passed.current = false;

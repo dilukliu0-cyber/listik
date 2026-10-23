@@ -1,7 +1,7 @@
 import * as Sharing from 'expo-sharing';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Image, PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, FlatList, Image, PanResponder, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { resolveUri } from '../files';
@@ -13,6 +13,58 @@ import { toast } from '../runtime';
 import { actions, useStore } from '../store';
 import { confirmDeleteNotes, deleteNotesWithUndo, showActions } from '../ui/dialogs';
 import Icon from '../ui/Icon';
+import RichText from './chat/RichText';
+
+/** Страница с фото: щипок и двойной тап — увеличение (iOS), один тап — показать/скрыть панели */
+function ZoomPage({ uri, width, onTap, onZoom }: { uri: string; width: number; onTap: () => void; onZoom: (zoomed: boolean) => void }) {
+  const ref = useRef<ScrollView>(null);
+  const lastTap = useRef(0);
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const zoomed = useRef(false);
+  const [box, setBox] = useState({ w: width, h: 0 });
+
+  const handleTap = (x: number, y: number) => {
+    const now = Date.now();
+    if (now - lastTap.current < 280) {
+      // двойной тап: увеличить к месту касания или вернуть как было
+      if (tapTimer.current) clearTimeout(tapTimer.current);
+      lastTap.current = 0;
+      const sv = ref.current as unknown as { scrollResponderZoomTo?: (r: { x: number; y: number; width: number; height: number; animated?: boolean }) => void };
+      if (zoomed.current) sv?.scrollResponderZoomTo?.({ x: 0, y: 0, width: box.w, height: box.h, animated: true });
+      else sv?.scrollResponderZoomTo?.({ x: x - box.w / 6, y: y - box.h / 6, width: box.w / 3, height: box.h / 3, animated: true });
+      return;
+    }
+    lastTap.current = now;
+    tapTimer.current = setTimeout(onTap, 280);
+  };
+
+  return (
+    <ScrollView
+      ref={ref}
+      style={{ width }}
+      contentContainerStyle={{ width, flexGrow: 1 }}
+      maximumZoomScale={4}
+      minimumZoomScale={1}
+      bouncesZoom
+      centerContent
+      showsHorizontalScrollIndicator={false}
+      showsVerticalScrollIndicator={false}
+      scrollEventThrottle={32}
+      onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+      onScroll={(e) => {
+        const z = (e.nativeEvent.zoomScale ?? 1) > 1.01;
+        if (z !== zoomed.current) {
+          zoomed.current = z;
+          onZoom(z);
+        }
+      }}
+    >
+      <Pressable onPress={(e) => handleTap(e.nativeEvent.locationX, e.nativeEvent.locationY)} style={{ width, flex: 1, justifyContent: 'center' }}>
+        <Image source={{ uri }} style={{ width, height: '100%' }} resizeMode="contain" />
+      </Pressable>
+    </ScrollView>
+  );
+}
 
 export default function PhotoViewerScreen({ route, navigation }: ScreenProps<'PhotoViewer'>) {
   const { width, height } = useWindowDimensions();
@@ -24,10 +76,14 @@ export default function PhotoViewerScreen({ route, navigation }: ScreenProps<'Ph
   const [index, setIndex] = useState(Math.min(route.params.index, Math.max(0, list.length - 1)));
   const y = useRef(new Animated.Value(0)).current;
   const [chrome, setChrome] = useState(true);
+  const [zoomed, setZoomed] = useState(false);
+  const zoomedRef = useRef(false);
+  zoomedRef.current = zoomed;
 
+  // смахнуть вверх/вниз — закрыть (не когда фото увеличено)
   const pan = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 12 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
+      onMoveShouldSetPanResponder: (_, g) => !zoomedRef.current && Math.abs(g.dy) > 12 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
       onPanResponderMove: (_, g) => y.setValue(g.dy),
       onPanResponderRelease: (_, g) => {
         if (Math.abs(g.dy) > 120 || Math.abs(g.vy) > 1.2) {
@@ -74,16 +130,13 @@ export default function PhotoViewerScreen({ route, navigation }: ScreenProps<'Ph
           data={list}
           horizontal
           pagingEnabled
+          scrollEnabled={!zoomed}
           showsHorizontalScrollIndicator={false}
           initialScrollIndex={index}
           getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
           keyExtractor={(n) => n.id}
           onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => setChrome((c) => !c)} style={{ width, height: '100%', justifyContent: 'center' }}>
-              <Image source={{ uri: resolveUri(item.photo!.uri) }} style={{ width, height: '100%' }} resizeMode="contain" />
-            </Pressable>
-          )}
+          renderItem={({ item }) => <ZoomPage uri={resolveUri(item.photo!.uri)} width={width} onTap={() => setChrome((c) => !c)} onZoom={setZoomed} />}
         />
       </Animated.View>
       {chrome ? (
@@ -114,7 +167,11 @@ export default function PhotoViewerScreen({ route, navigation }: ScreenProps<'Ph
             </Pressable>
           </View>
           <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom + 8, backgroundColor: 'rgba(0,0,0,0.45)' }}>
-            {cur.text ? <Text style={{ color: '#fff', fontSize: 15, paddingHorizontal: 16, paddingTop: 10 }}>{cur.text}</Text> : null}
+            {cur.text ? (
+              <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
+                <RichText text={cur.text} style={{ color: '#FFFFFF', fontSize: 15 }} linkColor="#7EC8F7" />
+              </View>
+            ) : null}
             <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingTop: 14 }}>
               <Pressable onPress={share} hitSlop={10}>
                 <Icon name="share" size={24} color="#fff" />

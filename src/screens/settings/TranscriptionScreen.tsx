@@ -41,10 +41,7 @@ export default function TranscriptionScreen() {
         <Row
           title="Обычная"
           subtitle="Встроена в iPhone, бывают ошибки"
-          onPress={() => {
-            haptic.select();
-            actions.setSettings({ engine: 'apple' });
-          }}
+          onPress={() => actions.setSettings({ engine: 'apple' })}
           right={!accurate ? <Icon name="check" size={18} color={t.accent} /> : null}
         />
         <Row
@@ -53,10 +50,7 @@ export default function TranscriptionScreen() {
           last
           onPress={
             ready
-              ? () => {
-                  haptic.select();
-                  actions.setSettings({ engine: 'whisper' });
-                }
+              ? () => actions.setSettings({ engine: 'whisper' })
               : undefined
           }
           right={

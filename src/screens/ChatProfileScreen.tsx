@@ -139,7 +139,7 @@ export default function ChatProfileScreen({ route, navigation }: ScreenProps<'Ch
       ? voices.map((n) => (
           <Pressable key={n.id} onLongPress={() => goChat(n.id)} style={[rowStyle, { flexDirection: 'column', alignItems: 'stretch' }]}>
             <Text style={{ color: t.text, fontSize: 15, fontWeight: '600', marginBottom: 6 }}>{dayAndTime(n.createdAt)}</Text>
-            <VoiceContent note={n} t={t} accent={t.dark ? '#7EC8F7' : '#4FAE4E'} sub={t.sub} textColor={t.text} fontSize={fontSize - 1} compact />
+            <VoiceContent note={n} t={t} accent={t.accent} sub={t.sub} textColor={t.text} fontSize={fontSize - 1} compact />
           </Pressable>
         ))
       : empty('Голосовые появятся здесь');
