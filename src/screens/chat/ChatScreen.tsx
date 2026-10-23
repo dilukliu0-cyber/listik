@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resolveUri } from '../../files';
 import { dayLabel, notesCount, sameDay } from '../../format';
 import { haptic } from '../../haptics';
+import { plainText } from '../../markup';
 import type { ScreenProps } from '../../navigation/types';
 import { toast } from '../../runtime';
 import { stopPlayback } from '../../services/player';
@@ -22,7 +23,7 @@ import { confirmDeleteNotes, deleteNotesWithUndo } from '../../ui/dialogs';
 import Wallpaper from '../../ui/Wallpaper';
 import AttachSheet from './AttachSheet';
 import Bubble from './Bubble';
-import Composer from './Composer';
+import Composer from './composer';
 import ContextMenu, { type MenuItem } from './ContextMenu';
 
 type Item = { k: 'n'; note: Note } | { k: 'd'; key: string; t: number };
@@ -211,7 +212,7 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   }
 
   const menuItems = (n: Note): MenuItem[] => {
-    const copyText = n.kind === 'voice' ? (n.voice?.transcript ?? '') : n.kind === 'list' ? [n.text, ...(n.items ?? []).map((i) => (i.done ? '☑ ' : '☐ ') + i.text)].filter(Boolean).join('\n') : n.text;
+    const copyText = n.kind === 'voice' ? (n.voice?.transcript ?? '') : n.kind === 'list' ? [n.text, ...(n.items ?? []).map((i) => (i.done ? '☑ ' : '☐ ') + i.text)].filter(Boolean).join('\n') : plainText(n.text);
     const canEdit = n.kind === 'text' || n.kind === 'photo' || n.kind === 'file' || n.kind === 'list' || (n.kind === 'voice' && n.voice?.transcript !== undefined);
     const list: MenuItem[] = [
       { label: 'Ответить', icon: 'reply', onPress: () => onReply(n) },
@@ -501,6 +502,7 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
             }}
             onAttach={openAttach}
             onFocus={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            onJump={jump}
             onSent={() => {
               setReplyTo(null);
               listRef.current?.scrollToOffset({ offset: 0, animated: true });

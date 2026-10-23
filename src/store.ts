@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
+import { plainText } from './markup';
 import { loadState, saveState } from './storage';
 
 // ---------- Типы ----------
@@ -347,7 +348,7 @@ export const actions = {
 export function notePreview(n: Note): string {
   switch (n.kind) {
     case 'photo':
-      return n.text ? n.text : 'Фото';
+      return n.text ? plainText(n.text) : 'Фото';
     case 'file':
       return n.file?.name ?? 'Файл';
     case 'voice':
@@ -358,13 +359,13 @@ export function notePreview(n: Note): string {
         (n.items ?? []).map((i) => (i.done ? '☑ ' : '☐ ') + i.text).join(' ')
       );
     default:
-      return n.text;
+      return plainText(n.text);
   }
 }
 
 /** Текст, по которому ищет поиск */
 export function noteSearchText(n: Note): string {
-  return [n.text, n.file?.name, n.voice?.transcript, ...(n.items ?? []).map((i) => i.text)]
+  return [plainText(n.text), n.file?.name, n.voice?.transcript, ...(n.items ?? []).map((i) => i.text)]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
