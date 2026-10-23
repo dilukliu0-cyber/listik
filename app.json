@@ -1,0 +1,89 @@
+{
+  "expo": {
+    "name": "Listik",
+    "slug": "listik",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#3390EC",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.diluk.listik",
+      "appleTeamId": "RH67B2MANC",
+      "buildNumber": "1",
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDevelopmentRegion": "ru",
+        "CFBundleLocalizations": ["ru"],
+        "NSMicrophoneUsageDescription": "Listik записывает голосовые заметки. Запись остаётся на телефоне.",
+        "NSSpeechRecognitionUsageDescription": "Listik превращает голосовые заметки в текст.",
+        "NSPhotoLibraryUsageDescription": "Listik показывает ваши фото, чтобы прикрепить их к заметкам.",
+        "NSCameraUsageDescription": "Listik снимает фото прямо в заметку."
+      }
+    },
+    "android": {
+      "package": "com.diluk.listik"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "Listik"
+    },
+    "plugins": [
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 140,
+          "resizeMode": "contain",
+          "backgroundColor": "#3390EC"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": { "deploymentTarget": "17.0" }
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Listik записывает голосовые заметки. Запись остаётся на телефоне."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Listik записывает голосовые заметки. Запись остаётся на телефоне.",
+          "speechRecognitionPermission": "Listik превращает голосовые заметки в текст."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Listik показывает ваши фото, чтобы прикрепить их к заметкам.",
+          "cameraPermission": "Listik снимает фото прямо в заметку.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Listik показывает ваши фото, чтобы прикрепить их к заметкам.",
+          "savePhotosPermission": false,
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "expo-sharing",
+      "expo-asset",
+      "expo-font",
+      "expo-image"
+    ]
+  }
+}
