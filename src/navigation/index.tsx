@@ -102,12 +102,12 @@ export default function Navigation() {
         <Stack.Screen name="Chat" component={S.Chat} />
         <Stack.Screen name="ChatProfile" component={S.ChatProfile} />
         <Stack.Screen name="EditChat" component={S.EditChat} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="PhotoViewer" component={S.PhotoViewer} options={{ presentation: 'transparentModal', animation: 'fade' }} />
+        <Stack.Screen name="PhotoViewer" component={S.PhotoViewer} options={{ presentation: 'transparentModal', animation: 'fade', gestureEnabled: false }} />
         <Stack.Screen name="Archive" component={S.Archive} options={{ ...sub, headerShown: true, title: 'Архив', headerStyle: { backgroundColor: t.bg } }} />
         <Stack.Screen name="Deleted" component={S.Deleted} options={{ ...sub, headerShown: true, title: 'Недавно удалённые' }} />
         <Stack.Screen name="Appearance" component={S.Appearance} options={{ ...sub, headerShown: true, title: 'Оформление' }} />
         <Stack.Screen name="Wallpaper" component={S.Wallpaper} options={{ ...sub, headerShown: true, title: 'Обои' }} />
-        <Stack.Screen name="TextSize" component={S.TextSize} options={{ ...sub, headerShown: true, title: 'Размер текста' }} />
+        <Stack.Screen name="TextSize" component={S.TextSize} options={{ ...sub, headerShown: true, title: 'Размер текста', gestureEnabled: false }} />
         <Stack.Screen name="Transcription" component={S.Transcription} options={{ ...sub, headerShown: true, title: 'Расшифровка' }} />
         <Stack.Screen name="Language" component={S.Language} options={{ ...sub, headerShown: true, title: 'Язык' }} />
         <Stack.Screen name="Storage" component={S.Storage} options={{ ...sub, headerShown: true, title: 'Память' }} />
