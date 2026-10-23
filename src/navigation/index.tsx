@@ -71,6 +71,7 @@ function Tabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        animation: 'fade', // мягкая смена вкладок
         tabBarActiveTintColor: t.accent,
         tabBarInactiveTintColor: t.sub,
         tabBarStyle: { backgroundColor: t.bar, borderTopColor: t.line },
@@ -95,7 +96,8 @@ export default function Navigation() {
   const sub = { headerBackTitle: 'Назад', headerTintColor: t.accent, headerStyle: { backgroundColor: t.group }, headerShadowVisible: false, headerTitleStyle: { color: t.text } };
   return (
     <NavigationContainer ref={navRef} theme={navTheme}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {/* нативные iOS-переходы стека со свайпом назад от края */}
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'default', gestureEnabled: true }}>
         <Stack.Screen name="Tabs" component={Tabs} />
         <Stack.Screen name="Chat" component={S.Chat} />
         <Stack.Screen name="ChatProfile" component={S.ChatProfile} />
