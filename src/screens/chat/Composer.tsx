@@ -1,6 +1,7 @@
 import { setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import Reanimated, { FadeIn, FadeInDown, FadeOut, SlideInRight, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { duration } from '../../format';
@@ -13,6 +14,7 @@ import { transcribe } from '../../services/transcriber';
 import { actions, notePreview, store, type Note } from '../../store';
 import type { Theme } from '../../theme';
 import Icon from '../../ui/Icon';
+import { PressScale } from '../../ui/motion';
 import { REC_OPTIONS, compressWave, level } from './Recorder';
 
 type Props = {
@@ -42,6 +44,9 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
   const dragX = useRef(new Animated.Value(0)).current;
   const dragY = useRef(new Animated.Value(0)).current;
   const blink = useRef(new Animated.Value(1)).current;
+  const pop = useRef(new Animated.Value(1)).current; // кнопка микрофона «надувается» при записи
+  const nudge = useRef(new Animated.Value(0)).current;
+  const bob = useRef(new Animated.Value(0)).current;
   const inputRef = useRef<TextInput>(null);
 
   recRef.current = rec;
@@ -64,12 +69,29 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
         Animated.timing(blink, { toValue: 1, duration: 500, useNativeDriver: true }),
       ]),
     );
+    // подсказка «влево — отмена» покачивается, стрелка замка зовёт вверх
+    const hint = Animated.loop(
+      Animated.sequence([
+        Animated.timing(nudge, { toValue: -6, duration: 600, useNativeDriver: true }),
+        Animated.timing(nudge, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ]),
+    );
+    const up = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bob, { toValue: -4, duration: 500, useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 0, duration: 500, useNativeDriver: true }),
+      ]),
+    );
     loop.start();
+    hint.start();
+    up.start();
     return () => {
       clearInterval(id);
       loop.stop();
+      hint.stop();
+      up.stop();
     };
-  }, [rec, blink]);
+  }, [rec, blink, nudge, bob]);
 
   async function startRec(): Promise<boolean> {
     if (Platform.OS === 'web') {
@@ -146,7 +168,11 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: async () => {
         const ok = await startRef.current();
-        if (ok) setRec('recording');
+        if (ok) {
+          pop.setValue(0.5);
+          Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 10 }).start();
+          setRec('recording');
+        }
       },
       onPanResponderMove: (_, g) => {
         if (recRef.current !== 'recording') return;
@@ -213,25 +239,29 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
       ) : null}
 
       {rec !== 'idle' ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 8, minHeight: 52 }}>
+        <Reanimated.View entering={FadeIn.duration(160)} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 8, minHeight: 52 }}>
           <Animated.View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#E5533D', opacity: blink, marginRight: 8 }} />
           <Text style={{ color: t.text, fontSize: 16, fontVariant: ['tabular-nums'], width: 50 }}>{duration(elapsed)}</Text>
           {rec === 'recording' ? (
-            <Animated.Text style={{ flex: 1, textAlign: 'center', color: t.sub, fontSize: 15, transform: [{ translateX: Animated.multiply(dragX, 0.5) }] }}>
-              ‹ влево — отмена
-            </Animated.Text>
+            <Reanimated.View entering={SlideInRight.springify().damping(18)} style={{ flex: 1 }}>
+              <Animated.Text style={{ textAlign: 'center', color: t.sub, fontSize: 15, opacity: dragX.interpolate({ inputRange: [-120, -40, 0], outputRange: [0.2, 0.8, 1], extrapolate: 'clamp' }), transform: [{ translateX: Animated.add(Animated.multiply(dragX, 0.5), nudge) }] }}>
+                ‹ влево — отмена
+              </Animated.Text>
+            </Reanimated.View>
           ) : (
-            <Pressable style={{ flex: 1, alignItems: 'center' }} onPress={() => finishRec(false)} hitSlop={10}>
-              <Text style={{ color: t.danger, fontSize: 17 }}>Отмена</Text>
-            </Pressable>
+            <Reanimated.View entering={FadeInDown.duration(200)} style={{ flex: 1 }}>
+              <Pressable style={{ alignItems: 'center' }} onPress={() => finishRec(false)} hitSlop={10}>
+                <Text style={{ color: t.danger, fontSize: 17 }}>Отмена</Text>
+              </Pressable>
+            </Reanimated.View>
           )}
           <View style={{ width: 64 }} />
-        </View>
+        </Reanimated.View>
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 8, paddingTop: 8 }}>
-          <Pressable onPress={onAttach} accessibilityLabel="Прикрепить" hitSlop={6} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+          <PressScale onPress={onAttach} feedback="select" scaleTo={0.85} accessibilityLabel="Прикрепить" hitSlop={6} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="paperclip" size={24} color={t.sub} />
-          </Pressable>
+          </PressScale>
           <TextInput
             ref={inputRef}
             value={text}
@@ -258,11 +288,13 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
             }}
           />
           {showSend ? (
-            <Pressable onPress={send} accessibilityLabel="Отправить" style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name={editing ? 'check' : 'send'} size={18} color="#fff" />
-              </View>
-            </Pressable>
+            <Reanimated.View entering={ZoomIn.springify().damping(14).stiffness(300)} exiting={ZoomOut.duration(120)}>
+              <PressScale onPress={send} feedback="none" scaleTo={0.85} accessibilityLabel="Отправить" style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={editing ? 'check' : 'send'} size={18} color="#fff" />
+                </View>
+              </PressScale>
+            </Reanimated.View>
           ) : (
             <View style={{ width: 38, height: 38 }} />
           )}
@@ -273,15 +305,23 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
       {!showSend || rec !== 'idle' ? (
         <View pointerEvents="box-none" style={{ position: 'absolute', right: rec === 'idle' ? 8 : -6, bottom: Math.max(insets.bottom, 8) + (rec === 'idle' ? 0 : -6) }}>
           {rec === 'recording' ? (
-            <Animated.View style={{ position: 'absolute', bottom: 92, left: 15, width: 44, height: 84, borderRadius: 22, backgroundColor: t.field, borderWidth: 0.5, borderColor: t.line, alignItems: 'center', justifyContent: 'space-around', paddingVertical: 8, transform: [{ translateY: Animated.multiply(dragY, 0.4) }] }}>
-              <Icon name="lock" size={18} color={t.sub} />
-              <Icon name="chevronUp" size={16} color={t.sub} />
-            </Animated.View>
+            <Reanimated.View entering={FadeInDown.springify().damping(14).stiffness(220)} exiting={FadeOut.duration(120)} style={{ position: 'absolute', bottom: 92, left: 15 }}>
+              <Animated.View style={{ width: 44, height: 84, borderRadius: 22, backgroundColor: t.field, borderWidth: 0.5, borderColor: t.line, alignItems: 'center', justifyContent: 'space-around', paddingVertical: 8, transform: [{ translateY: Animated.multiply(dragY, 0.4) }] }}>
+                <Animated.View style={{ transform: [{ scale: dragY.interpolate({ inputRange: [-80, 0], outputRange: [1.25, 1], extrapolate: 'clamp' }) }] }}>
+                  <Icon name="lock" size={18} color={t.sub} />
+                </Animated.View>
+                <Animated.View style={{ transform: [{ translateY: bob }] }}>
+                  <Icon name="chevronUp" size={16} color={t.sub} />
+                </Animated.View>
+              </Animated.View>
+            </Reanimated.View>
           ) : null}
           {rec === 'locked' ? (
-            <Pressable onPress={() => finishRec(true)} style={{ width: 74, height: 74, borderRadius: 37, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="send" size={28} color="#fff" />
-            </Pressable>
+            <Reanimated.View entering={ZoomIn.springify().damping(12)}>
+              <PressScale onPress={() => finishRec(true)} scaleTo={0.9} feedback="none" style={{ width: 74, height: 74, borderRadius: 37, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="send" size={28} color="#fff" />
+              </PressScale>
+            </Reanimated.View>
           ) : (
             <Animated.View
               {...micPan.panHandlers}
@@ -292,7 +332,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
                 backgroundColor: rec === 'idle' ? 'transparent' : t.accent,
                 alignItems: 'center',
                 justifyContent: 'center',
-                transform: [{ translateX: dragX }, { translateY: dragY }],
+                transform: [{ translateX: dragX }, { translateY: dragY }, { scale: rec === 'idle' ? 1 : pop }],
               }}
             >
               <Icon name={rec === 'idle' ? 'mic' : 'micFill'} size={rec === 'idle' ? 25 : 32} color={rec === 'idle' ? t.sub : '#fff'} />
