@@ -62,6 +62,16 @@ export function usePresence(visible: boolean, opts: { inMs?: number; outMs?: num
   return { mounted, progress, onDismiss: flush, afterHidden };
 }
 
+/** Плавная смена цвета фона (смена обоев → новая палитра) */
+export function useBgTransition(color: string, ms = 320) {
+  const c = useSharedValue(color);
+  useEffect(() => {
+    c.value = withTiming(color, { duration: ms, easing: EASE_OUT });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [color]);
+  return useAnimatedStyle(() => ({ backgroundColor: c.value }));
+}
+
 /** Фон-затемнение, привязанный к progress */
 export function useFadeStyle(progress: SharedValue<number>) {
   return useAnimatedStyle(() => ({ opacity: Math.min(1, Math.max(0, progress.value)) }));

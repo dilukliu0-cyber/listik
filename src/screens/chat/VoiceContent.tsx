@@ -7,7 +7,7 @@ import { useRuntime } from '../../runtime';
 import { togglePlay, usePlayback } from '../../services/player';
 import { transcribe } from '../../services/transcriber';
 import { actions, type Note } from '../../store';
-import type { Theme } from '../../theme';
+import { isDarkColor, type Theme } from '../../theme';
 import Icon from '../../ui/Icon';
 import { PressScale } from '../../ui/motion';
 
@@ -102,7 +102,7 @@ export default function VoiceContent({ note, t, accent, sub, textColor, fontSize
           }}
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: accent, alignItems: 'center', justifyContent: 'center', marginRight: 9 }}
         >
-          <Icon name={play.playing ? 'pause' : 'play'} size={18} color={t.dark && !compact ? '#1B3A57' : '#fff'} />
+          <Icon name={play.playing ? 'pause' : 'play'} size={18} color={compact || isDarkColor(accent) ? '#fff' : t.out} />
         </PressScale>
         <View style={{ flex: compact ? 1 : undefined }}>
           <Waveform wave={v.wave} progress={pos} color={accent} bars={compact ? 28 : BARS} />

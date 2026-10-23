@@ -1,9 +1,9 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Keyboard, Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { FlatList, Keyboard, Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardController, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import Reanimated, { FadeInDown, FadeOutDown, ZoomIn, ZoomOut, LinearTransition, useAnimatedStyle } from 'react-native-reanimated';
+import Reanimated, { FadeIn, FadeInDown, FadeOutDown, ZoomIn, ZoomOut, LinearTransition, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { resolveUri } from '../../files';
@@ -13,11 +13,11 @@ import type { ScreenProps } from '../../navigation/types';
 import { toast } from '../../runtime';
 import { stopPlayback } from '../../services/player';
 import { actions, chatNotes, notePreview, noteSearchText, useStore, type Note } from '../../store';
-import { useTheme } from '../../theme';
+import { useChatTheme } from '../../theme';
 import Avatar from '../../ui/Avatar';
 import EditTextModal from '../../ui/EditTextModal';
 import Icon from '../../ui/Icon';
-import { wait } from '../../ui/motion';
+import { useBgTransition, wait } from '../../ui/motion';
 import Wallpaper from '../../ui/Wallpaper';
 import AttachSheet from './AttachSheet';
 import Bubble from './Bubble';
@@ -31,9 +31,11 @@ const cellLayout = LinearTransition.springify().damping(24).stiffness(260).mass(
 
 export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   const { chatId } = route.params;
-  const t = useTheme();
   const insets = useSafeAreaInsets();
   const chat = useStore((s) => s.chats[chatId]);
+  // палитра чата подстраивается под его обои
+  const t = useChatTheme(chat?.wallpaper);
+  const barBg = useBgTransition(t.chatBar);
   const notes = useStore((s) => chatNotes(s, chatId));
   const globalWp = useStore((s) => s.settings.wallpaper);
   const fontSize = useStore((s) => s.settings.fontSize);
@@ -260,9 +262,9 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.chatBar }}>
+    <Reanimated.View style={[{ flex: 1 }, barBg]}>
       {/* Шапка */}
-      <View style={[{ paddingTop: insets.top, backgroundColor: t.chatBar }, pins.length && !searching && !selecting ? null : barBorder]}>
+      <Reanimated.View style={[{ paddingTop: insets.top }, barBg, pins.length && !searching && !selecting ? null : barBorder]}>
         {selecting ? (
           <View style={{ height: 50, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}>
             <Pressable onPress={exitSelect} hitSlop={10} style={{ flex: 1 }}>
@@ -315,11 +317,11 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
             </Pressable>
           </View>
         )}
-      </View>
+      </Reanimated.View>
 
       {/* Плашка закрепа */}
       {pin && !searching && !selecting ? (
-        <View style={[{ flexDirection: 'row', alignItems: 'center', backgroundColor: t.chatBar, paddingLeft: 12, borderTopWidth: 0.5, borderTopColor: t.dark ? '#0B121A' : '#E5E5EA' }, barBorder]}>
+        <Reanimated.View style={[{ flexDirection: 'row', alignItems: 'center', paddingLeft: 12, borderTopWidth: 0.5, borderTopColor: t.dark ? '#0B121A' : '#E5E5EA' }, barBg, barBorder]}>
           <Pressable
             style={{ flex: 1, flexDirection: 'row', paddingVertical: 7 }}
             onPress={() => {
@@ -348,15 +350,18 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
           <Pressable onPress={() => navigation.navigate('PinnedList', { chatId })} hitSlop={8} style={{ paddingHorizontal: 14, paddingVertical: 10 }}>
             <Icon name="list" size={20} color={t.chatSub} />
           </Pressable>
-        </View>
+        </Reanimated.View>
       ) : null}
 
       <View style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
-          <Wallpaper wallpaper={wallpaper} dark={t.dark} />
+          {/* при смене обоев новые мягко проявляются поверх старых */}
+          <Reanimated.View key={JSON.stringify(wallpaper)} entering={FadeIn.duration(320)} style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Wallpaper wallpaper={wallpaper} dark={t.dark} />
+          </Reanimated.View>
           {notes.length === 0 ? (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
-              <View style={{ backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 16, padding: 16, maxWidth: 260 }}>
+              <View style={{ backgroundColor: t.datePill, borderRadius: 16, padding: 16, maxWidth: 260 }}>
                 <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15, textAlign: 'center' }}>Здесь пока пусто</Text>
                 <Text style={{ color: '#fff', fontSize: 14, textAlign: 'center', marginTop: 4 }}>Напишите первую заметку, прикрепите фото или удерживайте микрофон.</Text>
               </View>
@@ -380,7 +385,7 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
               renderItem={({ item }) =>
                 item.k === 'd' ? (
                   <View style={{ alignItems: 'center', marginVertical: 8 }}>
-                    <View style={{ backgroundColor: t.dark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.22)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 }}>
+                    <View style={{ backgroundColor: t.datePill, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 }}>
                       <Text style={{ color: '#fff', fontSize: 13, fontWeight: '500' }}>{dayLabel(item.t)}</Text>
                     </View>
                   </View>
@@ -504,6 +509,6 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
           setTranscriptNote(null);
         }}
       />
-    </View>
+    </Reanimated.View>
   );
 }

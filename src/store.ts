@@ -11,7 +11,7 @@ export type ChatIcon =
 export type Wallpaper =
   | { kind: 'pattern'; index: number }
   | { kind: 'color'; color: string }
-  | { kind: 'photo'; uri: string };
+  | { kind: 'photo'; uri: string; tint?: string }; // tint — средний цвет фото, от него считается палитра
 
 export type Chat = {
   id: string;

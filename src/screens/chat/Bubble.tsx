@@ -6,7 +6,7 @@ import { resolveUri } from '../../files';
 import { bytes, time } from '../../format';
 import { haptic } from '../../haptics';
 import { actions, notePreview, useStore, type Note } from '../../store';
-import type { Theme } from '../../theme';
+import { isDarkColor, type Theme } from '../../theme';
 import Icon from '../../ui/Icon';
 import { SPRING_BOUNCY } from '../../ui/motion';
 import RichText from './RichText';
@@ -45,15 +45,15 @@ function TimeTag({ note, color }: { note: Note; color: string }) {
 
 export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile, onEditTranscript, maxW }: Pick<Props, 'note' | 't' | 'fontSize' | 'onJump' | 'onOpenPhoto' | 'onOpenFile' | 'onEditTranscript'> & { maxW: number }) {
   const reply = useStore((s) => (note.replyTo ? s.notes[note.replyTo] : undefined));
-  const textStyle = { color: t.text, fontSize, lineHeight: Math.round(fontSize * 1.3) };
+  const textStyle = { color: t.outText, fontSize, lineHeight: Math.round(fontSize * 1.3) };
   const timeSpacer = <Text style={{ fontSize: 11, color: 'transparent' }}>{'    ' + (note.editedAt ? 'изм. ' : '') + '00:00'}</Text>;
 
   const quote = note.replyTo ? (
-    <Pressable onPress={() => reply && !reply.deletedAt && onJump(reply.id)} style={{ flexDirection: 'row', marginBottom: 4, borderRadius: 6, overflow: 'hidden', backgroundColor: t.dark ? 'rgba(126,200,247,0.12)' : 'rgba(79,174,78,0.10)' }}>
+    <Pressable onPress={() => reply && !reply.deletedAt && onJump(reply.id)} style={{ flexDirection: 'row', marginBottom: 4, borderRadius: 6, overflow: 'hidden', backgroundColor: t.outAccent + '1F' }}>
       <View style={{ width: 3, backgroundColor: t.outAccent }} />
       <View style={{ paddingHorizontal: 7, paddingVertical: 3, flexShrink: 1 }}>
         <Text style={{ color: t.outAccent, fontWeight: '600', fontSize: 14 }}>Ответ</Text>
-        <Text numberOfLines={1} style={{ color: t.text, fontSize: 14 }}>
+        <Text numberOfLines={1} style={{ color: t.outText, fontSize: 14 }}>
           {reply && !reply.deletedAt ? notePreview(reply) : 'Заметка удалена'}
         </Text>
       </View>
@@ -77,7 +77,7 @@ export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile,
           </Pressable>
           {note.text ? (
             <View style={{ paddingHorizontal: 7, paddingTop: 5, paddingBottom: 3 }}>
-              <RichText text={note.text} style={textStyle} linkColor={t.accent} />
+              <RichText text={note.text} style={textStyle} linkColor={t.link} />
               <Text>{timeSpacer}</Text>
               <View style={{ ...timePos, right: 7, bottom: 3 }}>
                 <TimeTag note={note} color={t.outSub} />
@@ -98,14 +98,14 @@ export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile,
           {quote}
           <Pressable onPress={() => onOpenFile(note)} style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 4 }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.outAccent, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-              <Icon name="file" size={20} color={t.dark ? '#1B3A57' : '#fff'} />
+              <Icon name="file" size={20} color={isDarkColor(t.outAccent) ? '#fff' : t.out} />
             </View>
             <View style={{ flexShrink: 1 }}>
-              <Text numberOfLines={2} style={{ color: t.text, fontSize: 16, fontWeight: '600' }}>{f.name}</Text>
+              <Text numberOfLines={2} style={{ color: t.outText, fontSize: 16, fontWeight: '600' }}>{f.name}</Text>
               <Text style={{ color: t.outSub, fontSize: 13, marginTop: 2 }}>{bytes(f.size)}</Text>
             </View>
           </Pressable>
-          {note.text ? <RichText text={note.text} style={{ ...textStyle, marginTop: 6 }} linkColor={t.accent} /> : null}
+          {note.text ? <RichText text={note.text} style={{ ...textStyle, marginTop: 6 }} linkColor={t.link} /> : null}
           <Text>{timeSpacer}</Text>
           <View style={timePos}>
             <TimeTag note={note} color={t.outSub} />
@@ -117,7 +117,7 @@ export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile,
       return (
         <View style={[pad, { minWidth: 240 }]}>
           {quote}
-          <VoiceContent note={note} t={t} accent={t.outAccent} sub={t.outSub} textColor={t.text} fontSize={fontSize} onEditTranscript={() => onEditTranscript(note)} />
+          <VoiceContent note={note} t={t} accent={t.outAccent} sub={t.outSub} textColor={t.outText} fontSize={fontSize} onEditTranscript={() => onEditTranscript(note)} />
           <Text>{timeSpacer}</Text>
           <View style={timePos}>
             <TimeTag note={note} color={t.outSub} />
@@ -139,7 +139,7 @@ export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile,
               }}
               style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 3 }}
             >
-              <Icon name={it.done ? 'squareCheck' : 'square'} size={fontSize + 3} color={it.done ? t.outAccent : t.sub} style={{ marginRight: 7, marginTop: 1 }} />
+              <Icon name={it.done ? 'squareCheck' : 'square'} size={fontSize + 3} color={it.done ? t.outAccent : t.outSub} style={{ marginRight: 7, marginTop: 1 }} />
               <Text style={{ ...textStyle, flexShrink: 1, opacity: it.done ? 0.5 : 1, textDecorationLine: it.done ? 'line-through' : 'none' }}>{it.text}</Text>
             </Pressable>
           ))}
@@ -154,7 +154,7 @@ export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile,
         <View style={pad}>
           {quote}
           <Text style={textStyle}>
-            <RichText text={note.text} style={textStyle} linkColor={t.accent} />
+            <RichText text={note.text} style={textStyle} linkColor={t.link} />
             {timeSpacer}
           </Text>
           <View style={timePos}>
@@ -198,6 +198,7 @@ function Bubble(props: Props) {
   const pan = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => !cb.current.selecting && g.dx < -12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.8,
+      onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: () => {
         fired.current = false;
         x.stopAnimation();
