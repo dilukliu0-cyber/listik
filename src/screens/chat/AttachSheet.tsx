@@ -70,16 +70,29 @@ export default function AttachSheet({ t, visible, onClose, chatId, replyTo, capt
 
   // iOS не покажет камеру/галерею, пока шторка (Modal) ещё закрывается — экран зависает.
   // Поэтому действие ставится в очередь и выполняется после полного закрытия шторки.
+  // Страховка: если iOS не сообщила о закрытии, действие всё равно выполнится (каждое — ровно один раз).
   const pending = useRef<(() => void) | null>(null);
-  const closeThen = (f: () => void) => {
-    pending.current = f;
-    onClose();
-  };
-  const onHidden = () => {
+  const guard = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const run = (delay: number) => {
+    if (guard.current) clearTimeout(guard.current);
+    guard.current = null;
     const f = pending.current;
     pending.current = null;
-    if (f) setTimeout(f, 30);
+    if (f) setTimeout(f, delay);
   };
+  const closeThen = (f: () => void) => {
+    if (pending.current) return; // двойной тап — второй игнорируем
+    pending.current = f;
+    guard.current = setTimeout(() => run(0), 1200);
+    onClose();
+  };
+  const onHidden = () => run(Platform.OS === 'ios' ? 80 : 0);
+  useEffect(
+    () => () => {
+      if (guard.current) clearTimeout(guard.current);
+    },
+    [],
+  );
 
   async function pickRecent(r: Recent) {
     try {
