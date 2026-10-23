@@ -42,7 +42,7 @@ function Splash({ onDone }: { onDone: () => void }) {
       <View style={{ width: 120, height: 120, borderRadius: 28, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
         <Icon name="bubble" size={64} color="#3390EC" />
       </View>
-      <Text style={{ color: '#fff', fontSize: 36, fontWeight: '700', marginTop: 18, letterSpacing: 0.5 }}>Listik</Text>
+      <Text style={{ color: '#fff', fontSize: 36, fontWeight: '700', marginTop: 18, letterSpacing: 0.5 }}>Листик</Text>
       <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, marginTop: 4 }}>заметки как сообщения</Text>
     </Animated.View>
   );
@@ -81,7 +81,7 @@ function Root() {
 
 export default function App() {
   return (
-    <ErrorBoundary title="Listik не смог запуститься">
+    <ErrorBoundary title="Листик не смог запуститься">
       <SafeAreaProvider>
         <KeyboardProvider>
           <Root />

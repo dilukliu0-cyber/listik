@@ -45,7 +45,7 @@ function PermissionPrompt() {
             <Icon name={info.icon} size={32} color={t.accent} />
             <Text style={{ color: t.text, fontWeight: '600', fontSize: 17, marginTop: 8, marginBottom: 4, textAlign: 'center' }}>{info.title}</Text>
             <Text style={{ color: t.sub, fontSize: 13, textAlign: 'center' }}>
-              {denied ? 'Доступ запрещён. Его можно включить в Настройках iPhone → Listik.' : info.text}
+              {denied ? 'Доступ запрещён. Его можно включить в Настройках iPhone → Листик.' : info.text}
             </Text>
           </View>
           <Pressable onPress={() => answerPrompt(true)} style={[{ padding: 12, alignItems: 'center' }, sep]}>

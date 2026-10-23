@@ -13,7 +13,7 @@ export default function AboutScreen() {
         <View style={{ width: 88, height: 88, borderRadius: 20, backgroundColor: '#3390EC', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="bubble" size={46} color="#fff" />
         </View>
-        <Text style={{ color: t.text, fontSize: 26, fontWeight: '700', marginTop: 12 }}>Listik</Text>
+        <Text style={{ color: t.text, fontSize: 26, fontWeight: '700', marginTop: 12 }}>Листик</Text>
         <Text style={{ color: t.sub, fontSize: 15, marginTop: 2 }}>заметки как сообщения</Text>
       </View>
       <Group>

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Listik",
+    "name": "Листик",
     "slug": "listik",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -21,10 +21,10 @@
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDevelopmentRegion": "ru",
         "CFBundleLocalizations": ["ru"],
-        "NSMicrophoneUsageDescription": "Listik записывает голосовые заметки. Запись остаётся на телефоне.",
-        "NSSpeechRecognitionUsageDescription": "Listik превращает голосовые заметки в текст.",
-        "NSPhotoLibraryUsageDescription": "Listik показывает ваши фото, чтобы прикрепить их к заметкам.",
-        "NSCameraUsageDescription": "Listik снимает фото прямо в заметку."
+        "NSMicrophoneUsageDescription": "Листик записывает голосовые заметки. Запись остаётся на телефоне.",
+        "NSSpeechRecognitionUsageDescription": "Листик превращает голосовые заметки в текст.",
+        "NSPhotoLibraryUsageDescription": "Листик показывает ваши фото, чтобы прикрепить их к заметкам.",
+        "NSCameraUsageDescription": "Листик снимает фото прямо в заметку."
       }
     },
     "android": {
@@ -32,7 +32,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "Listik"
+      "name": "Листик"
     },
     "plugins": [
       "expo-status-bar",
@@ -54,28 +54,28 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Listik записывает голосовые заметки. Запись остаётся на телефоне."
+          "microphonePermission": "Листик записывает голосовые заметки. Запись остаётся на телефоне."
         }
       ],
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Listik записывает голосовые заметки. Запись остаётся на телефоне.",
-          "speechRecognitionPermission": "Listik превращает голосовые заметки в текст."
+          "microphonePermission": "Листик записывает голосовые заметки. Запись остаётся на телефоне.",
+          "speechRecognitionPermission": "Листик превращает голосовые заметки в текст."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Listik показывает ваши фото, чтобы прикрепить их к заметкам.",
-          "cameraPermission": "Listik снимает фото прямо в заметку.",
+          "photosPermission": "Листик показывает ваши фото, чтобы прикрепить их к заметкам.",
+          "cameraPermission": "Листик снимает фото прямо в заметку.",
           "microphonePermission": false
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Listik показывает ваши фото, чтобы прикрепить их к заметкам.",
+          "photosPermission": "Листик показывает ваши фото, чтобы прикрепить их к заметкам.",
           "savePhotosPermission": false,
           "isAccessMediaLocationEnabled": false
         }
