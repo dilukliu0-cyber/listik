@@ -1,4 +1,5 @@
-import { Image, View } from 'react-native';
+import { Image as XImage } from 'expo-image';
+import { View } from 'react-native';
 
 import { resolveUri } from '../files';
 import type { Chat } from '../store';
@@ -8,7 +9,7 @@ type Props = { chat: Pick<Chat, 'icon' | 'color' | 'photo'>; size: number };
 
 export default function Avatar({ chat, size }: Props) {
   if (chat.photo) {
-    return <Image source={{ uri: resolveUri(chat.photo) }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+    return <XImage source={{ uri: resolveUri(chat.photo) }} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" recyclingKey={chat.photo} />;
   }
   return (
     <View

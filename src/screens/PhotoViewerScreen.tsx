@@ -1,7 +1,8 @@
+import { Image as XImage } from 'expo-image';
 import * as Sharing from 'expo-sharing';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Image, PanResponder, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, FlatList, PanResponder, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { resolveUri } from '../files';
@@ -60,7 +61,7 @@ function ZoomPage({ uri, width, onTap, onZoom }: { uri: string; width: number; o
       }}
     >
       <Pressable onPress={(e) => handleTap(e.nativeEvent.locationX, e.nativeEvent.locationY)} style={{ width, flex: 1, justifyContent: 'center' }}>
-        <Image source={{ uri }} style={{ width, height: '100%' }} resizeMode="contain" />
+        <XImage source={{ uri }} style={{ width, height: '100%' }} contentFit="contain" transition={120} />
       </Pressable>
     </ScrollView>
   );

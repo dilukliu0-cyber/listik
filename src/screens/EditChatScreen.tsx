@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { importFile, removeFiles } from '../files';
+import { removeFiles } from '../files';
+import { preparePhoto } from '../services/photos';
 import { haptic } from '../haptics';
 import type { ScreenProps } from '../navigation/types';
 import { actions, useStore, type ChatIcon } from '../store';
@@ -28,8 +29,9 @@ export default function EditChatScreen({ route, navigation }: ScreenProps<'EditC
   async function pickPhoto() {
     const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 }).catch(() => null);
     if (r && !r.canceled && r.assets[0]) {
-      const rel = await importFile(r.assets[0].uri, r.assets[0].uri, 'jpg');
-      setPhoto(rel);
+      const a = r.assets[0];
+      const ready = await preparePhoto(a.uri, a.width, a.height); // сжатое, а не 12 Мп
+      setPhoto(ready.uri);
     }
   }
 

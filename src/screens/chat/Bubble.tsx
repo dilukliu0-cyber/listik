@@ -1,5 +1,6 @@
+import { Image as XImage } from 'expo-image';
 import { memo, useEffect, useRef } from 'react';
-import { Animated, Image, PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, PanResponder, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import Reanimated, { FadeInUp, LinearTransition, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { resolveUri } from '../../files';
@@ -86,7 +87,7 @@ export function BubbleBody({ note, t, fontSize, onJump, onOpenPhoto, onOpenFile,
         <View style={{ padding: note.text || note.replyTo ? 3 : 0, width: w + (note.text || note.replyTo ? 6 : 0) }}>
           {quote ? <View style={{ paddingHorizontal: 7, paddingTop: 4 }}>{quote}</View> : null}
           <Pressable onPress={() => onOpenPhoto(note)}>
-            <Image source={{ uri: resolveUri(p.uri) }} style={{ width: w, height: h, borderRadius: Math.max(4, t.radius - 3), backgroundColor: t.dark ? '#24384D' : '#8FB27A' }} resizeMode="cover" />
+            <XImage source={{ uri: resolveUri(p.uri) }} recyclingKey={note.id} contentFit="cover" transition={150} style={{ width: w, height: h, borderRadius: Math.max(4, t.radius - 3), backgroundColor: t.dark ? '#24384D' : '#8FB27A' }} />
           </Pressable>
           {note.text ? (
             <View style={{ paddingHorizontal: 7, paddingTop: 5, paddingBottom: 3 }}>

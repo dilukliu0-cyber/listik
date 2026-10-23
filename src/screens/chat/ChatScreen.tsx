@@ -97,11 +97,6 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
   const bottomPad = Math.max(insets.bottom, 8) - 8;
   const kbSpacer = useAnimatedStyle(() => ({ height: Math.max(0, -kb.height.value - bottomPad) }));
 
-  // Клавиатура поднимается — шторка скрепки закрывается, как в Telegram
-  useEffect(() => {
-    const sub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setAttach(false));
-    return () => sub.remove();
-  }, []);
 
   const openAttach = useCallback(async () => {
     // сначала дожидаемся, пока клавиатура уедет, потом открываем шторку — иначе поле ввода
@@ -504,7 +499,10 @@ export default function ChatScreen({ route, navigation }: ScreenProps<'Chat'>) {
               setEditing(null);
             }}
             onAttach={openAttach}
-            onFocus={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            onFocus={() => {
+              setAttach(false); // фокус на поле — шторка скрепки закрывается, как в Telegram
+              listRef.current?.scrollToOffset({ offset: 0, animated: true });
+            }}
             onJump={jump}
             onSent={() => {
               setReplyTo(null);

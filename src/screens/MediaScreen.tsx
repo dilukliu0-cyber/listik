@@ -1,7 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Image as XImage } from 'expo-image';
 import { useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { resolveUri } from '../files';
 import { monthKey, monthLabel } from '../format';
@@ -144,7 +145,7 @@ export default function MediaScreen() {
                         nav.navigate('PhotoViewer', { ids: list.map((x) => x.id), index: list.findIndex((x) => x.id === p.id) });
                       }}
                     >
-                      <Image source={{ uri: resolveUri(p.photo!.uri) }} style={{ width: size, height: size, backgroundColor: t.search, opacity: selecting && !sel ? 0.85 : 1 }} />
+                      <XImage source={{ uri: resolveUri(p.photo!.uri) }} recyclingKey={p.id} contentFit="cover" transition={120} style={{ width: size, height: size, backgroundColor: t.search, opacity: selecting && !sel ? 0.85 : 1 }} />
                       <View style={{ position: 'absolute', left: 6, bottom: 6, width: 12, height: 12, borderRadius: 6, backgroundColor: chats[p.chatId].color, borderWidth: 1.5, borderColor: '#fff' }} />
                       {selecting ? (
                         <View style={{ position: 'absolute', right: 6, top: 6, width: 24, height: 24, borderRadius: 12, borderWidth: sel ? 0 : 1.5, borderColor: '#fff', backgroundColor: sel ? t.accent : 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' }}>

@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image as XImage } from 'expo-image';
 import * as Sharing from 'expo-sharing';
+import { useMemo, useState } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { resolveUri } from '../files';
 import { bytes, dateLong, dayAndTime, duration, monthKey, monthLabel, notesCount } from '../format';
@@ -49,7 +50,7 @@ export function PhotoGrid({ photos, t, onOpen, dotColor }: { photos: Note[]; t: 
               const dot = dotColor?.(p);
               return (
                 <Pressable key={p.id} onPress={() => onOpen(p)}>
-                  <Image source={{ uri: resolveUri(p.photo!.uri) }} style={{ width: size, height: size, backgroundColor: t.search }} />
+                  <XImage source={{ uri: resolveUri(p.photo!.uri) }} recyclingKey={p.id} contentFit="cover" transition={120} style={{ width: size, height: size, backgroundColor: t.search }} />
                   {dot ? <View style={{ position: 'absolute', left: 6, bottom: 6, width: 12, height: 12, borderRadius: 6, backgroundColor: dot, borderWidth: 1.5, borderColor: '#fff' }} /> : null}
                 </Pressable>
               );

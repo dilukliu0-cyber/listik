@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import Reanimated, { FadeIn } from 'react-native-reanimated';
 
-import { importFile, removeFiles } from '../../files';
+import { removeFiles } from '../../files';
 import { haptic } from '../../haptics';
 import type { ScreenProps } from '../../navigation/types';
 import { imageTint } from '../../services/imageTint';
+import { preparePhoto } from '../../services/photos';
 import { actions, useStore, type Wallpaper as W } from '../../store';
 import { SOLID_COLORS, WALLPAPERS, chatTheme, isDarkColor, useTheme, type Theme } from '../../theme';
 import ChatPreview from '../../ui/ChatPreview';
@@ -52,9 +53,10 @@ export default function WallpaperScreen({ route }: ScreenProps<'Wallpaper'>) {
   async function pickPhoto() {
     const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85 }).catch(() => null);
     if (r && !r.canceled && r.assets[0]) {
-      const rel = await importFile(r.assets[0].uri, r.assets[0].uri, 'jpg');
-      const tint = await imageTint(rel);
-      apply({ kind: 'photo', uri: rel, tint });
+      const a = r.assets[0];
+      const ready = await preparePhoto(a.uri, a.width, a.height);
+      const tint = await imageTint(ready.uri);
+      apply({ kind: 'photo', uri: ready.uri, tint });
     }
   }
 

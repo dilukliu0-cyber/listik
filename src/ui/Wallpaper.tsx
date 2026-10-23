@@ -1,5 +1,6 @@
+import { Image as XImage } from 'expo-image';
 import { memo, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 
 import { resolveUri } from '../files';
@@ -105,7 +106,7 @@ function WallpaperView({ wallpaper, dark }: { wallpaper: W; dark: boolean }) {
     >
       {wallpaper.kind === 'photo' ? (
         <>
-          <Image source={{ uri: resolveUri(wallpaper.uri) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <XImage source={{ uri: resolveUri(wallpaper.uri) }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
           {dark ? <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.25)' }]} /> : null}
         </>
       ) : wallpaper.kind === 'pattern' && size.w > 0 ? (
