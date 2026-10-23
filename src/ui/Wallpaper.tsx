@@ -78,6 +78,7 @@ function Pattern({ index, dark, width, height }: { index: number; dark: boolean;
               transform={`translate(${s.x} ${s.y}) rotate(${s.r}) scale(${s.s})`}
               stroke={ink}
               strokeWidth={1.6}
+              strokeOpacity={0.6}
               strokeLinecap="round"
               strokeLinejoin="round"
               fill="none"

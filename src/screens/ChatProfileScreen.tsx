@@ -216,7 +216,7 @@ export default function ChatProfileScreen({ route, navigation }: ScreenProps<'Ch
         </View>
 
         <View style={{ marginTop: 14, backgroundColor: t.card, minHeight: 300 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.line }} contentContainerStyle={{ paddingHorizontal: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.line }} contentContainerStyle={{ paddingHorizontal: 8 }}>
             {TABS.map(([k, label]) => (
               <Pressable
                 key={k}

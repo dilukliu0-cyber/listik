@@ -228,7 +228,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
         </View>
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 8, paddingTop: 8 }}>
-          <Pressable onPress={onAttach} hitSlop={6} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+          <Pressable onPress={onAttach} accessibilityLabel="Прикрепить" hitSlop={6} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="paperclip" size={24} color={t.sub} />
           </Pressable>
           <TextInput
@@ -238,6 +238,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
             placeholder="Заметка"
             placeholderTextColor={t.sub}
             multiline
+            numberOfLines={1}
             style={{
               flex: 1,
               maxHeight: 140,
@@ -255,7 +256,7 @@ export default function Composer({ t, chatId, replyTo, editing, onCancelContext,
             }}
           />
           {showSend ? (
-            <Pressable onPress={send} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable onPress={send} accessibilityLabel="Отправить" style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
               <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name={editing ? 'check' : 'send'} size={18} color="#fff" />
               </View>
